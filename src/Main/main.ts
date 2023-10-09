@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from "electron";
-import * as path from "path";
-import * as url from "url";
+import path from "path";
+import url from "url";
 
 let mainWindow: Electron.BrowserWindow | null;
 
@@ -10,9 +10,10 @@ function createMainWindow() {
         height: 700,
         backgroundColor: "#f2f2f2",
         webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-        devTools: process.env.NODE_ENV !== "production",
+            nodeIntegration: true,
+            contextIsolation: true,
+            devTools: process.env.NODE_ENV !== "production",
+            preload: path.join(__dirname, 'Preload.js'),
         },
     });
     mainWindow.on("closed", () => {
@@ -65,17 +66,17 @@ app.on("ready", createWindow);
 
 // Quit when all windows are closed.
 app.on("window-all-closed", () => {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+    // On OS X it is common for applications and their menu bar
+    // to stay active until the user quits explicitly with Cmd + Q
+    if (process.platform !== "darwin") {
+        app.quit();
+    }
 });
 
 app.on("activate", () => {
-  // On OS X it"s common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createWindow();
-  }
+    // On OS X it"s common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (mainWindow === null) {
+        createWindow();
+    }
 });

@@ -17,15 +17,30 @@ if(devElectronWebpack.status != 0) {
 }
 
 console.log('dev:electron-react');
-const devElectronRect = spawn('npm', ['run', 'dev:electron-react', ...args], {stdio: 'inherit', shell: true});
+const devElectronReact = spawn('npm', ['run', 'dev:electron-react', ...args], {stdio: 'inherit', shell: true});
 
 console.log('start:electron');
 // const devElectron = spawn('npm', ['run', 'start:electron'], {stdio: 'inherit'});
 spawnSync('npm', ['run', 'start:electron'], {stdio: 'inherit', shell: true});
 
-process.kill(devElectronRect.pid);
+// process.on('SIGINT', function() {
+//     console.log("Caught interrupt signal");
 
-while(devElectronRect.status == null) {
+//     process.kill(devElectronRect.pid);
+
+//     while(devElectronRect.status == null) {
+//         // nothing
+//     }
+
+//     process.exit();
+// });
+
+// while(devElectronRect.status == null) {
+//     // nothing
+// }
+
+process.kill(devElectronReact.pid);
+while(devElectronReact.exitCode === null) {
     // nothing
 }
 

@@ -27,7 +27,10 @@ module.exports = ({port: portStrOrUndefined=''}) => {
       extensions: [".tsx", ".ts", ".js"],
     },
     devtool: "source-map",
-    entry: path.resolve(rootPath, "src", "Main", "main.ts"),
+    entry: {
+      Main: path.resolve(rootPath, "src", "Main", "Main.ts"),
+      Preload: path.resolve(rootPath, "src", "Main", "Preload.ts"),
+    },
     target: "electron-main",
     module: {
       rules: [
@@ -45,6 +48,7 @@ module.exports = ({port: portStrOrUndefined=''}) => {
       __dirname: false,
     },
     output: {
+      clean: true,
       path: path.resolve(rootPath, "build", "electron"),
       filename: "[name].js",
     },

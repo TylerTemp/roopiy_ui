@@ -1,6 +1,6 @@
 import ReactDOM from 'react-dom/client'
-import React from "react";
-import { createRoot } from "react-dom/client";
+// import React from "react";
+// import { createRoot } from "react-dom/client";
 
 import ErrorBoundary from '~/Components/ErrorBoundary'
 import ThemeProvider from '~/Components/Theme/ThemeProvider'
@@ -10,6 +10,7 @@ import { HelmetProvider } from 'react-helmet-async'
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from '~/Components/Layout'
 
+import Home from '~/Pages/Home'
 import NotFound from '~/Pages/NotFound'
 
 // import App from "./components/App";
@@ -27,7 +28,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<>
                 <HelmetProvider>
                     <Routes>
                         <Route path="/" element={<Layout />}>
-                            {/* <Route index element={<Home />} /> */}
+                            <Route index element={<Home />} />
                             <Route path="*" element={<NotFound />} />
                         </Route>
                     </Routes>

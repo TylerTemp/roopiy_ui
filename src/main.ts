@@ -5,22 +5,60 @@ import * as url from "url";
 let mainWindow: Electron.BrowserWindow | null;
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 700,
-    backgroundColor: "#f2f2f2",
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      devTools: process.env.NODE_ENV !== "production",
-    },
-  });
 
   if (process.env.NODE_ENV === "development") {
-    console.log(`load http://localhost:${process.env.PORT}`);
-    mainWindow.loadURL(`http://localhost:${process.env.PORT || 8081}`);
+    const url = `http://localhost:${process.env.PORT || 8081}`;
+    var waitOn = require('wait-on');
+    console.log(`waiting ${url}`)
+    waitOn({resources: [url], timeout: 30000})
+      .then(() => {
+        mainWindow = new BrowserWindow({
+          width: 1100,
+          height: 700,
+          backgroundColor: "#f2f2f2",
+          webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            devTools: process.env.NODE_ENV !== "production",
+          },
+        });
+        mainWindow.on("closed", () => {
+          mainWindow = null;
+        });
+        mainWindow.webContents.on('crashed', (e) => {
+            console.log(`crash catched`);
+            console.error(e);
+        });
+
+        // mainWindow.webContents.openDevTools();
+
+        return mainWindow.loadURL(url)
+          .then(() => mainWindow!.webContents.openDevTools())
+          .catch(err => {
+            console.log(`error loading ${url}`, err);
+            mainWindow?.close();
+          });
+      })
+      .catch(console.error);
   } else {
     console.log(`load renderer/index.html`);
+
+    mainWindow = new BrowserWindow({
+      width: 1100,
+      height: 700,
+      backgroundColor: "#f2f2f2",
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+        devTools: process.env.NODE_ENV !== "production",
+      },
+    });
+    mainWindow.on("closed", () => {
+      mainWindow = null;
+    });
+
+    mainWindow.webContents.openDevTools();
+
     mainWindow.loadURL(
       url.format({
         pathname: path.join(__dirname, "renderer/index.html"),
@@ -30,11 +68,7 @@ function createWindow() {
     );
   }
 
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
 
-  mainWindow.webContents.openDevTools();
 }
 
 // This method will be called when Electron has finished

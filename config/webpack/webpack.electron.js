@@ -1,13 +1,16 @@
-import * as path from "path";
-import { DefinePlugin, Configuration } from "webpack";
+// import * as path from "path";
+const path = require('path');
+// import { DefinePlugin } from "webpack";
+const { DefinePlugin } = require('webpack');
 
 const rootPath = path.resolve(__dirname, "..", "..");
 
-interface Params {
-  [key:string]: string | undefined
-}
+// interface Params {
+//   [key:string]: string | undefined
+// }
 
-export default ({port: portStrOrUndefined=''}: Params): Configuration => {
+// export default ({port: portStrOrUndefined=''}) => {
+module.exports = ({port: portStrOrUndefined=''}) => {
 
   let port;
   if (process.env.PORT === undefined) {

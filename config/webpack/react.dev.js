@@ -84,7 +84,7 @@ module.exports = ({target, port: portStrOrUndefined=''}) => {
                     { from: /.*/, to: '/index.html' },
                 ],
             },
-            port: 9988,
+            port,
             // proxy: {
             //     '/api': {
             //         target: `http://localhost:${apiPort}`,

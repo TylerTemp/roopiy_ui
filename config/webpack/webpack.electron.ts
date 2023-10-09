@@ -1,34 +1,57 @@
 import * as path from "path";
-import { Configuration } from "webpack";
+import { DefinePlugin, Configuration } from "webpack";
 
 const rootPath = path.resolve(__dirname, "..", "..");
 
-const config = {
-  resolve: {
-    extensions: [".tsx", ".ts", ".js"],
-  },
-  devtool: "source-map",
-  entry: path.resolve(rootPath, "src", "main.ts"),
-  target: "electron-main",
-  module: {
-    rules: [
-      {
-        test: /\.(js|ts|tsx)$/,
-        exclude: /node_modules/,
-        include: /src/,
-        use: {
-          loader: "ts-loader",
+interface Params {
+  [key:string]: string | undefined
+}
+
+export default ({port: portStrOrUndefined=''}: Params): Configuration => {
+
+  let port;
+  if (process.env.PORT === undefined) {
+      port = portStrOrUndefined === '' ? 8081 : parseInt(portStrOrUndefined, 10);
+  }
+  else {
+      port = process.env.PORT;
+  }
+
+  console.log(`electron`, process.env.PORT, portStrOrUndefined, port);
+
+  return ({
+    resolve: {
+      extensions: [".tsx", ".ts", ".js"],
+    },
+    devtool: "source-map",
+    entry: path.resolve(rootPath, "src", "main.ts"),
+    target: "electron-main",
+    module: {
+      rules: [
+        {
+          test: /\.(js|ts|tsx)$/,
+          exclude: /node_modules/,
+          include: /src/,
+          use: {
+            loader: "ts-loader",
+          },
         },
-      },
+      ],
+    },
+    node: {
+      __dirname: false,
+    },
+    output: {
+      path: path.resolve(rootPath, "build", "electron"),
+      filename: "[name].js",
+    },
+    plugins: [
+      new DefinePlugin({
+        // 'process.env.NODE_ENV': JSON.stringify('development'),
+        'process.env.PORT': JSON.stringify(port),
+      })
     ],
-  },
-  node: {
-    __dirname: false,
-  },
-  output: {
-    path: path.resolve(rootPath, "build", "electron"),
-    filename: "[name].js",
-  },
+  });
 };
 
-export default config;
+// export default config;

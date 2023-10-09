@@ -5,7 +5,16 @@ import webpack from 'webpack';
 import paths from './paths';
 import path from 'path';
 
-module.exports = ({target}) => {
+module.exports = ({target, port: portStrOrUndefined=''}) => {
+    let port;
+    if (process.env.PORT === undefined) {
+        port = portStrOrUndefined === '' ? 8081 : parseInt(portStrOrUndefined, 10);
+    }
+    else {
+        port = process.env.PORT;
+    }
+
+    console.log(`react.dev`, process.env.PORT, portStrOrUndefined, port);
     return ({
         mode: 'development',
         devtool: 'eval-source-map',
@@ -75,7 +84,7 @@ module.exports = ({target}) => {
                     { from: /.*/, to: '/index.html' },
                 ],
             },
-            port: process.env.PORT || 8081,
+            port: 9988,
             // proxy: {
             //     '/api': {
             //         target: `http://localhost:${apiPort}`,
@@ -116,7 +125,6 @@ module.exports = ({target}) => {
             // }),
             new webpack.DefinePlugin({
                 'process.env.NODE_ENV': JSON.stringify('development'),
-                // 'process.env.PORT': JSON.stringify(process.env.PORT),
             })
         ],
     });

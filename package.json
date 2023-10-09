@@ -4,14 +4,23 @@
   "main": "./build/electron/main.js",
   "license": "MIT",
   "scripts": {
-    "prod": "npx cross-env NODE_ENV=production webpack --config webpack.config.js && electron --noDevServer .",
-    "dev": "cross-env npm-run-all -p dev:electron-react electron:serve",
-    "dev:electron-react": "cross-env-shell NODE_ENV=development FLAVOR=electron webpack-dev-server --config webpack.react.js --mode=development --port=${PORT}",
-    "dev:electron": "cross-env-shell NODE_ENV=development webpack --config config/webpack/webpack.electron.ts --mode=development && electron .",
-    "electron:serve": "cross-env-shell wait-on http-get://localhost:${PORT} && npm run dev:electron",
-    "build": "npx cross-env NODE_ENV=production webpack --config=webpack.config.js",
-    "package": "build",
-    "postpackage": "electron-packager ./ --out=./build",
+    "prod": "cross-env NODE_ENV=production webpack --config webpack.config.js && electron --noDevServer .",
+
+    "dev": "node scripts/dev.js",
+    "dev:electron-react": "cross-env-shell NODE_ENV=development FLAVOR=electron webpack --config webpack.react.js --mode=development",
+    "dev:electron": "cross-env-shell NODE_ENV=development webpack --config config/webpack/webpack.electron.ts --mode=development --env port=${PORT} && npm run start:electron",
+    "dev:electron:webpack": "cross-env-shell NODE_ENV=development webpack --config config/webpack/webpack.electron.ts --mode=development",
+
+    "build": "npm-run-all build:electron build:react",
+    "build:electron": "webpack --config webpack/electron.webpack.ts --mode=production",
+    "build:react": "webpack --config webpack/react.webpack.ts --mode=production",
+
+    "build:run": "npm-run-all build start:electron",
+    "start:electron": "electron .",
+
+    "package": "npm-run-all build package:dist",
+    "package:dist": "electron-builder --dir",
+
     "lint": "npx eslint src/**/**.{js,jsx,ts,tsx}",
     "stats": "npx webpack --profile --json build/compilation-stats.json && npx webpack-bundle-analyzer build/compilation-stats.json"
   },

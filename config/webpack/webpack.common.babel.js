@@ -154,7 +154,7 @@ module.exports = () => ({
         modules: ['src', 'node_modules'],
         extensions: ['*', '.js', '.jsx', '.ts', '.tsx', '.scss', '.css'],
         alias: {
-            '~': path.resolve(paths.root, 'src/') // added this: ts alias import
+            '~': path.resolve(paths.root, 'src/Renderer') // added this: ts alias import
         },
     },
     plugins: [

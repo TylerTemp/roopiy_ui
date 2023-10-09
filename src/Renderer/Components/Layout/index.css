@@ -1,0 +1,43 @@
+/* .appBarPlaceholder {
+    height: 64px;
+    width: 100%;
+} */
+
+.content {
+    /* position: relative; */
+    position: fixed;
+    /* margin: 74px 10px 10px 10px; */
+    /* margin-top: 64px; */
+    overflow-y: auto;
+    padding-top: 64px;
+    /* bottom: -64px; */
+    height: 100%;
+
+    left: 0;
+    right: 0;
+}
+
+.relative {
+    position: relative;
+}
+
+/* .contentMargin {
+    margin: 10px;
+} */
+.contentMarginNoTop {
+    margin: 0 10px 10px 10px;
+}
+
+.topLoader {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}

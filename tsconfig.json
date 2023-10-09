@@ -15,7 +15,7 @@
 
         "baseUrl": "src",
         "paths": {
-            "~/*": ["./*"],
+            "~/*": ["./Renderer/*"],
         },
         "typeRoots": ["node_modules/@types", "src/types"],
         "plugins": [

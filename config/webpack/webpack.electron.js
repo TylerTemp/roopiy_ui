@@ -27,7 +27,7 @@ module.exports = ({port: portStrOrUndefined=''}) => {
       extensions: [".tsx", ".ts", ".js"],
     },
     devtool: "source-map",
-    entry: path.resolve(rootPath, "src", "main.ts"),
+    entry: path.resolve(rootPath, "src", "Main", "main.ts"),
     target: "electron-main",
     module: {
       rules: [

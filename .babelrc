@@ -1,0 +1,22 @@
+{
+  "presets":
+    [
+      "@babel/preset-env",
+      "@babel/preset-react"
+    ],
+  "plugins":
+    [
+        [
+          "babel-plugin-root-import", {
+              "rootPathPrefix": "~",
+              "rootPathSuffix": "src",
+            }
+        ],
+        // ["conditional-compilation", {
+        //   // "define": {
+        //     "VIDEO_GALLERY_DEFAULT_EDIT": false,
+        //     "VIDEO_TAB_DEFAULT_GALLERY": false,
+        //   // }
+        // }]
+    ]
+}

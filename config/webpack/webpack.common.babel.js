@@ -159,16 +159,16 @@ module.exports = () => ({
     },
     plugins: [
         new webpack.ProgressPlugin(),
-        // new HtmlWebpackPlugin({
-        //     template: paths.templatePath,
-        //     minify: {
-        //         collapseInlineTagWhitespace: true,
-        //         collapseWhitespace: true,
-        //         preserveLineBreaks: true,
-        //         minifyURLs: true,
-        //         removeComments: true,
-        //         removeAttributeQuotes: false
-        //     }
-        // })
+        new HtmlWebpackPlugin({
+            template: paths.templatePath,
+            minify: {
+                collapseInlineTagWhitespace: true,
+                collapseWhitespace: true,
+                preserveLineBreaks: true,
+                minifyURLs: true,
+                removeComments: true,
+                removeAttributeQuotes: false
+            }
+        })
     ]
 });

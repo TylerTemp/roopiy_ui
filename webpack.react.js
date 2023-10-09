@@ -10,9 +10,12 @@ const envs = {
 
 /* eslint-disable global-require,import/no-dynamic-require */
 const envName = envs[process.env.NODE_ENV || 'development'];
-const envConfig = require(`./config/webpack/webpack.${envName}.babel`);
+const flavor = process.env.FLAVOR;
+
+const envConfig = require(`./config/webpack/react.${envName}`);
 
 module.exports = (env={}) => {
-    console.log(env);
-    return merge(common(env), envConfig(env));
+    const target = flavor === 'electron'? 'electron-renderer': undefined;
+    console.log(`${target}.${envName}`, env);
+    return merge(common(env), envConfig({...env, target}));
 };

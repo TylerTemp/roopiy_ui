@@ -20,7 +20,7 @@ module.exports = () => ({
         // globalObject: this,
         clean: true,
         filename: ({chunk: {name}}, assetInfo) => {
-            console.log(name);
+            // console.log(name);
             return name === 'main' ? '[name].js' : `${paths.jsFolder}/[name].[fullhash].js`;
         },
         path: paths.outputPath,

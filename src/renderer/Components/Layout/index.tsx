@@ -88,8 +88,11 @@ export default () => {
         </AppBar>
         <div className={Style.content}>
             <div className={Style.relative}>
-                <Outlet />
+                <Container maxWidth="xl">
+                    <Outlet />
+                </Container>
             </div>
         </div>
+
     </>;
 };

@@ -4,7 +4,7 @@ export default () => {
 
     const [echo, setEcho] = useState('');
 
-    const replied = window.electron.ipcRenderer.invoke('echo', 'a message from the renderer process', 'a second argument')
+    window.electron.ipcRenderer.invoke('project', 'list')
         .then(setEcho);
 
     return <>

@@ -16,6 +16,8 @@
     "baseUrl": "src",
     "paths": {
         "~/*": ["./renderer/*"],
+        "~s/*": ["./shared/*"],
+        "~m/*": ["./main/*"],
     },
   },
   "exclude": ["test", "release/build", "release/app/dist", ".erb/dll"]

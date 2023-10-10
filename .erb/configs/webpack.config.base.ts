@@ -48,7 +48,8 @@ const configuration: webpack.Configuration = {
     // There is no need to add aliases here, the paths in tsconfig get mirrored
     plugins: [new TsconfigPathsPlugins()],
     alias: {
-        '~': webpackPaths.srcRendererPath // added this: ts alias import
+        '~m': webpackPaths.srcMainPath, // added this: ts alias import
+        '~': webpackPaths.srcRendererPath, // added this: ts alias import
     },
   },
 

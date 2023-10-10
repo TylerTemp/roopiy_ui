@@ -10,7 +10,7 @@ export default () => {
         ? "light"
         : "dark";
 
-    return <ToastContainer 
+    return <ToastContainer
         position="bottom-right"
         theme={toastTheme}
         autoClose={3000}

@@ -9,7 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { screen, app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -75,10 +75,12 @@ const createWindow = async () => {
         return path.join(RESOURCES_PATH, ...paths);
     };
 
+    const {width, height} = screen.getPrimaryDisplay().workAreaSize
+
     mainWindow = new BrowserWindow({
         show: false,
-        width: 1024,
-        height: 728,
+        width: width,
+        height: height,
         icon: getAssetPath('icon.png'),
         webPreferences: {
             preload: app.isPackaged
@@ -87,9 +89,9 @@ const createWindow = async () => {
         },
     });
 
-    mainWindow.once('ready-to-show', () => {
-        mainWindow!.maximize()
-    })
+    // mainWindow.once('ready-to-show', () => {
+    //     mainWindow!.maximize()
+    // })
 
     mainWindow.loadURL(resolveHtmlPath('index.html'));
 
@@ -100,6 +102,7 @@ const createWindow = async () => {
         if (process.env.START_MINIMIZED) {
             mainWindow.minimize();
         } else {
+            // mainWindow.maximize();
             mainWindow.show();
         }
     });
@@ -108,8 +111,8 @@ const createWindow = async () => {
         mainWindow = null;
     });
 
-    const menuBuilder = new MenuBuilder(mainWindow);
-    menuBuilder.buildMenu();
+    // const menuBuilder = new MenuBuilder(mainWindow);
+    // menuBuilder.buildMenu();
 
     // Open urls in the user's browser
     mainWindow.webContents.setWindowOpenHandler((edata) => {

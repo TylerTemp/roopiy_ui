@@ -1,6 +1,6 @@
 export default () => {
-    console.log(window.electronAPI);
+    // console.log(window.electronAPI);
     return <>
-        {window.electronAPI}
+        hi
     </>;
 }

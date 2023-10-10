@@ -13,6 +13,10 @@ module.exports = {
     '@typescript-eslint/no-shadow': 'error',
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
+    'prettier/prettier': 0,
+    'react/function-component-definition': [
+      false
+    ]
   },
   parserOptions: {
     ecmaVersion: 2022,

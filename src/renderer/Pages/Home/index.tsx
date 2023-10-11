@@ -76,30 +76,51 @@ export default () => {
     const [projectEdit, setProjectEdit] = useState<ProjectEdit>(emptyProject);
 
     const isNewProject = useMemo(() => !projectFolderList.includes(selectedProjectFolder), [projectFolderList, selectedProjectFolder]);
-    useEffect(() => {
-        if(projectFolderList.includes(selectedProjectFolder)) {
-            getPromise(
-                selectedProjectFolder,
-                () => window.electron.ipcRenderer.project.GetConfig(selectedProjectFolder)
-                    .then(({referenceVideoFrom, referenceVideoDuration, referenceVideoSlice, ...left}: ProjectType): ProjectEdit => ({
-                        ...left,
-                        referenceVideoSlice,
-                        referenceVideoFrom: referenceVideoSlice? referenceVideoFrom!.toString(): emptyProject.referenceVideoFrom,
-                        referenceVideoTo: referenceVideoSlice? (referenceVideoFrom! + referenceVideoDuration!).toString(): emptyProject.referenceVideoTo,
-                    }))
-            )
-            .then(setProjectEdit);
+    // useEffect(() => {
+    //     if(projectFolderList.includes(selectedProjectFolder)) {
+    //         getPromise(
+    //             selectedProjectFolder,
+    //             () => window.electron.ipcRenderer.project.GetConfig(selectedProjectFolder)
+    //                 .then(({referenceVideoFrom, referenceVideoDuration, referenceVideoSlice, ...left}: ProjectType): ProjectEdit => ({
+    //                     ...left,
+    //                     referenceVideoSlice,
+    //                     referenceVideoFrom: referenceVideoSlice? referenceVideoFrom!.toString(): emptyProject.referenceVideoFrom,
+    //                     referenceVideoTo: referenceVideoSlice? (referenceVideoFrom! + referenceVideoDuration!).toString(): emptyProject.referenceVideoTo,
+    //                 }))
+    //         )
+    //         .then(setProjectEdit);
+    //     }
+    //     // else {
+    //     //     setProject(emptyProject);
+    //     // }
+    // }, [selectedProjectFolder]);
+    const checkLoad = (projectFolder: string): void => {
+        if(!projectFolderList.includes(selectedProjectFolder)) {
+            return;
         }
-        // else {
-        //     setProject(emptyProject);
-        // }
-    }, [selectedProjectFolder]);
+
+        getPromise(
+            projectFolder,
+            () => window.electron.ipcRenderer.project.GetConfig(selectedProjectFolder)
+                .then(({referenceVideoFrom, referenceVideoDuration, referenceVideoSlice, ...left}: ProjectType): ProjectEdit => ({
+                    ...left,
+                    referenceVideoSlice,
+                    referenceVideoFrom: referenceVideoSlice? referenceVideoFrom!.toString(): emptyProject.referenceVideoFrom,
+                    referenceVideoTo: referenceVideoSlice? (referenceVideoFrom! + referenceVideoDuration!).toString(): emptyProject.referenceVideoTo,
+                }))
+        )
+        .then(result => {
+            if(projectFolder === selectedProjectFolder) {
+                setProjectEdit(result);
+            }
+        });
+    }
 
     // const inputFileRef = useRef<HTMLInputElement>(null);
 
     const createProject = () => {
         const {referenceVideoSlice, referenceVideoFrom, referenceVideoTo, ...left} = projectEdit;
-        if (referenceVideoSlice && (referenceVideoFrom === '' || referenceVideoTo === '')) {
+        if (referenceVideoSlice && (referenceVideoFrom === '' && referenceVideoTo === '')) {
             enqueueSnackbar('Invalid slice time', 'error');
             return;
         }
@@ -108,11 +129,13 @@ export default () => {
         let referenceVideoFromSeconds: number | null = null;
         if(referenceVideoSlice) {
             referenceVideoFromSeconds = referenceVideoFrom === ''? 0: ParseFFmpegTime(referenceVideoFrom);
-            const referenceVideoToSeconds: number = ParseFFmpegTime(referenceVideoTo);
-            referenceVideoDuration = referenceVideoToSeconds - referenceVideoFromSeconds;
+            // const referenceVideoToSeconds: number = ParseFFmpegTime(referenceVideoTo);
+            referenceVideoDuration = referenceVideoTo === ''
+                ? -1
+                : ParseFFmpegTime(referenceVideoTo) - referenceVideoFromSeconds;
         }
 
-        const project: ProjectType = {
+        let project: ProjectType = {
             ...left,
             referenceVideoSlice,
             referenceVideoFrom: referenceVideoFromSeconds,
@@ -123,10 +146,19 @@ export default () => {
         // const project: ProjectType = {
         return window.electron.ipcRenderer.project.GetVideoSeconds(project.referenceVideoFile)
             .then((seconds: number) => {
-                const estimateImageCount = Math.round(seconds * 30);
-                // start to extract
-                // 1.  listen on progress
-                // 2.  tell server to extract
+                console.log(seconds);
+                if(referenceVideoSlice && referenceVideoDuration! <= 0) {
+                    project = {...project, referenceVideoDuration: (seconds - referenceVideoFromSeconds!)}
+                }
+                const duration = referenceVideoSlice? project.referenceVideoDuration!: seconds;
+                const estimateImageCount = Math.round(duration * 30);
+                window.electron.ipcRenderer.project.ExtractVideo(
+                    selectedProjectFolder,
+                    project,
+                    value => console.log(value, estimateImageCount),
+                )
+                .then(() => console.log("all finished extract"))
+                .catch(err => console.log(`errored...`, err));
             })
             // .then(() => {
             //     addCache(selectedProjectFolder, projectEdit);
@@ -145,7 +177,8 @@ export default () => {
                 value={selectedProjectFolder}
                 onChange={(_event, newValue) => {
                     // console.log(`autoComplete onChange`, newValue);
-                    return setSelectedProjectFolder(newValue || '');
+                    setSelectedProjectFolder(newValue || '');
+                    checkLoad(newValue || '');
                 }}
                 options={projectFolderList}
                 renderInput={({InputProps, InputLabelProps, ...params}) => <TextField

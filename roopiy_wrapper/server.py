@@ -4,6 +4,7 @@ Usage:
 """
 import logging
 import json
+import threading
 import typing
 import os
 import shutil
@@ -11,11 +12,14 @@ import subprocess
 
 import docpie
 import flask
+# import flask_sockets
+import flask_sock
 
 from roopiy.faces import load_face_analyser, load_face_enhancer, load_face_swapper
 from roopiy.extract_video import extract_frames
 
 app = flask.Flask(__name__)
+sock = flask_sock.Sock(app)
 
 pie = docpie.docpie(__doc__)
 
@@ -33,7 +37,7 @@ class ProjectType(typing.TypedDict):
     referenceVideoFile: str
     referenceVideoSlice: bool
     referenceVideoFrom: str
-    referenceVideoDuration: str
+    referenceVideoDuration: str | None
     sourceVideoFile: str
 
 
@@ -67,10 +71,13 @@ def parse_ffmpeg_time(time_str: str) -> float | int:
     return total_seconds + (float(f'0.{float_part}') if float_part else 0)
 
 
-@app.route('/extract_video', methods=['POST'])
-def prepare_project():
-    body = flask.request.get_data(as_text=True)
-    prepare_project_value: PrepareProjectType = json.loads(body)
+# @app.route('/extract_video', methods=['POST'])
+@sock.route('/extract_video')
+def extract_video(ws):
+    print('extract_video')
+
+    # body = flask.request.get_data(as_text=True)
+    prepare_project_value: PrepareProjectType = json.loads(ws.receive())
     # reference_video_slice_from: str | None = None
     # reference_video_slice_duration: str | None = None
     # if prepare_project_value['Project']['referenceVideoSlice']:
@@ -90,29 +97,55 @@ def prepare_project():
 
     work_path = prepare_project_value['Path']
 
-    save_cut: str | None = os.path.join(work_path, 'source.mp4') if prepare_project_value['Project']['referenceVideoSlice'] else None
+    slice_video: bool = prepare_project_value['Project']['referenceVideoSlice']
+
+    save_cut: str | None = os.path.join(work_path, 'source.mp4') if slice else None
 
     frames_folder = os.path.join(work_path, 'frames')
     print(f'frames_folder: {frames_folder}')
-    if not os.path.exists(frames_folder):
-        os.makedirs(frames_folder)
+    if os.path.exists(frames_folder):
+        shutil.rmtree(frames_folder)
+    os.makedirs(frames_folder)
 
-    extract_frames(
-        prepare_project_value['Project']['referenceVideoFile'],
-        frames_folder,
-        fps=30,
-        ss=prepare_project_value['Project']['referenceVideoFrom'],
-        to=prepare_project_value['Project']['referenceVideoDuration'],
-        save_cut=save_cut
+    # extract_frames(
+    #     prepare_project_value['Project']['referenceVideoFile'],
+    #     frames_folder,
+    #     fps=30,
+    #     ss=prepare_project_value['Project']['referenceVideoFrom'],
+    #     to=prepare_project_value['Project']['referenceVideoDuration'],
+    #     save_cut=save_cut
+    # )
+
+    ss: str | None = str(prepare_project_value['Project']['referenceVideoFrom']) if slice_video else None
+    to: str | None = str(prepare_project_value['Project']['referenceVideoDuration']) if slice_video else None
+
+    t = threading.Thread(
+        target=extract_frames,
+        args=(prepare_project_value['Project']['referenceVideoFile'], frames_folder),
+        kwargs={'fps': 30, 'ss': ss, 'to': to, 'save_cut': save_cut}
     )
+    t.start()
 
+    last_folder_count = 0
+    while t.is_alive():
+        this_folder_count = len(os.listdir(frames_folder))
+        # print(this_folder_count, frames_folder)
+        if last_folder_count != this_folder_count:
+            last_folder_count = this_folder_count
+            # print(f'send {last_folder_count}')
+            ws.send(str(last_folder_count))
+    else:
+        print('ws end on process finished')
+        ws.send('end')
+
+    ws.close()
     if not prepare_project_value['Project']['referenceVideoSlice']:
         shutil.copyfile(
-            prepare_project['Project']['referenceVideoFile'],
+            prepare_project_value['Project']['referenceVideoFile'],
             os.path.join(work_path, 'source.mp4')
         )
 
-    return 'OK'
+    # return 'OK'
 
 
 if __name__ == '__main__':

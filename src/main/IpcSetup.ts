@@ -15,9 +15,16 @@ export default (ipcMain: IpcMain): void => {
         else if(args[0] === Channel.project.v.GetVideoSeconds) {
             return GetVideoSeconds(args[1]);
         }
-        // else if(args[0] == Channel.project.v.CreateConfig) {
-        //     return await ExtractVideo(args[1], JSON.parse(args[2]) as ProjectType);
-        // }
+        else if(args[0] == Channel.project.v.ExtractVideo) {
+            const [_, channelName, folder, projectTypeStr] = args;
+            const result: Promise<void> = ExtractVideo(folder,
+                JSON.parse(projectTypeStr) as ProjectType,
+                (count: number) => {
+                    // console.log(`emit ${channelName} ${count}`)
+                    event.sender.send(channelName, count.toString());
+                });
+            return result;
+        }
     });
 
 }

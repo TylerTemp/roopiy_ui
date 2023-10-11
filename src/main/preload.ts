@@ -35,18 +35,37 @@ const electronHandler = {
             },
 
             GetVideoSeconds: (videoFile: string): Promise<number> => {
+                console.log(`invoke`, Channel.project.k, Channel.project.v.GetVideoSeconds, videoFile);
                 return ipcRenderer.invoke(Channel.project.k, Channel.project.v.GetVideoSeconds, videoFile) as Promise<number>;
             },
-            OnFolderImageCount: (folder: string, callback: (count:number) => void): (() => void) => {
-                const channelName = `${Channel.project.v.OnFolderImageCountChannel}.${folder}`;
+            // OnFolderImageCount: (folder: string, callback: (count:number) => void): (() => void) => {
+            //     const channelName = `${Channel.project.v.OnFolderImageCountChannel}.${folder}`;
 
-                ipcRenderer.on(channelName, (_event: IpcRendererEvent, count: number) => {
+            //     ipcRenderer.on(channelName, (_event: IpcRendererEvent, count: number) => {
+            //         callback(count);
+            //     });
+            //     ipcRenderer.send(Channel.project.k, Channel.project.v.OnFolderImageCount, folder);
+            //     return () => {
+            //         ipcRenderer.removeListener(channelName, callback);
+            //     };
+            // }
+            ExtractVideo: (folder: string, config: ProjectType, callback: (count:number) => void): Promise<void> => {
+                const channelName = `${Channel.project.v.ExtractVideoEvent}.${folder}`;
+
+                console.log(`setup channel ${channelName}`)
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, count: number, end: boolean) => {
                     callback(count);
                 });
-                ipcRenderer.send(Channel.project.k, Channel.project.v.OnFolderImageCount, folder);
-                return () => {
-                    ipcRenderer.removeListener(channelName, callback);
-                };
+
+                return ipcRenderer.invoke(Channel.project.k, Channel.project.v.ExtractVideo,
+                    channelName,
+                    folder,
+                    JSON.stringify(config))
+                .then(() => ipcRenderer.removeListener(channelName, callback)) as Promise<void>;
+
+                // return () => {
+                //     ipcRenderer.removeListener(channelName, callback);
+                // };
             }
 
             // CreateConfig: (name: string, config: ProjectType) => ipcRenderer.invoke('project', 'CreateConfig', name, JSON.stringify(config)) as Promise<void>,

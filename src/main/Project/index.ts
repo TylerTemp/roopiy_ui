@@ -3,13 +3,14 @@ import { spawnSync } from 'child_process';
 import { join } from 'path';
 import type ProjectType from '~s/Types/Project';
 import type ApiPrepareProject from '~m/Project/ApiPrepareProject';
-import {ProjectsRoot, WrapperUrl} from '../Utils/Config';
+import {ProjectsRoot, WrapperHost} from '../Utils/Config';
 import { ProjectEdit } from '~s/Types/Project';
+import WebSocket from 'ws';
 
 
 export const GetList = (): string[] => {
     const result = readdirSync(ProjectsRoot, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory())
+        .filter(dirent => dirent.isDirectory() && existsSync(join(ProjectsRoot, dirent.name, 'config.json')))
         .map(dirent => dirent.name);
 
     console.log(`project list:`, result);
@@ -28,8 +29,13 @@ export const GetConfig = (projectFolder: string): ProjectType => {
 export const GetVideoSeconds = (videoFile: string): number => {
     const args: string[] = ['-v', 'error', '-select_streams', 'v', '-show_entries', 'stream=duration', '-of',
         'json=compact=1', videoFile];
-    const result = spawnSync('ffprob', args, { encoding: 'utf-8', shell: true });
-    console.assert(!result.error, result.error);
+
+    console.log('ffprobe ' + args.join(' '));
+    const result = spawnSync('ffprobe', args, { encoding: 'utf-8', shell: false, stdio: 'pipe' });
+    // console.assert(!result.stderr, result.stderr );
+    console.log(result.status);
+    console.log(result.stderr);
+    console.log(`ffprobe output`, result.stdout);
     const outputAsJSON = JSON.parse(result.stdout);
     const durationStr = outputAsJSON['streams'][0]['duration'];
     const duration: number = parseFloat(durationStr);
@@ -104,49 +110,53 @@ export const GetVideoSeconds = (videoFile: string): number => {
 // }
 
 
-export const ExtractVideo = (projectFolder: string, config: ProjectType): Promise<void> => {
+export const ExtractVideo = (projectFolder: string, config: ProjectType, callback: (count:number) => void): Promise<void> => {
     const fileDir = join(ProjectsRoot, projectFolder);
     if(!existsSync(fileDir)) {
         console.log(`create dir ${fileDir}`);
         mkdirSync(fileDir, { recursive: true});
     }
 
-    // const {referenceVideoFile, referenceVideoSlice} = config;
-    // const totalSeconds = GetVideoSeconds(referenceVideoFile);
-    // console.log(`totalSeconds: ${totalSeconds} / ${referenceVideoFile}`);
-    // let sliceSeconds: number = totalSeconds;
-    // if(referenceVideoSlice) {
-    //     const {fromSecond, toSecond} = ParseSlice(config);
-    //     console.assert(fromSecond >= 0, fromSecond);
-    //     // console.assert(toSecond <= totalSeconds, toSecond);
-    //     if(toSecond !== null) {
-    //         console.assert(toSecond <= totalSeconds, toSecond);
-    //         console.assert(toSecond > fromSecond, `${fromSecond} -> ${toSecond}`);
-    //         sliceSeconds = toSecond - fromSecond;
-    //     }
-    //     else {
-    //         sliceSeconds = totalSeconds - fromSecond;
-    //     }
-    // }
-
-    // const estimatedImageCount = Math.round(sliceSeconds * 30);  // 30=fps
-
     const apiPrepareProjeec: ApiPrepareProject = {
         Path: fileDir,
         Project: config,
     }
 
-    return fetch(WrapperUrl + `/extract_video`, {
-        method: 'POST',
-        body: JSON.stringify(apiPrepareProjeec),
-        headers: {
-            'Content-Type': 'application/json',
+    console.log(`connect to wrapper`);
+
+    const ws = new WebSocket(`ws://${WrapperHost}/extract_video`);
+    ws.onopen = () => {
+        console.log('connected');
+        ws.send(JSON.stringify(apiPrepareProjeec));
+    };
+
+    return new Promise((resolve, reject) => {
+        ws.onmessage = ({data}) => {
+            // console.log(`message: ${data}`);
+            if(data === 'end') {
+                console.log(`extract finished`);
+                resolve();
+                ws.close();
+                return;
+            }
+
+            callback(parseInt(data as string, 10));
         }
-    })
-        .then(resp => resp.text())
-        .then(resp => {
-            console.log(resp);
-        });
+
+        ws.onerror = reject;
+    });
+
+    // return fetch(`ws://${WrapperHost}/extract_video`, {
+    //     method: 'POST',
+    //     body: JSON.stringify(apiPrepareProjeec),
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     }
+    // })
+    //     .then(resp => resp.text())
+    //     .then(resp => {
+    //         console.log(resp);
+    //     });
 }
 
 

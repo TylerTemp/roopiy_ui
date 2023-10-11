@@ -6,8 +6,10 @@ export default {
             GetConfig: 'GetConfig',
             // CreateConfig: 'CreateConfig',
             GetVideoSeconds: 'GetVideoSeconds',
-            OnFolderImageCount: 'project.OnFolderImageCount',
-            OnFolderImageCountChannel: 'project.OnFolderImageCountChannel',
+            ExtractVideo: 'ExtractVideo',
+            ExtractVideoEvent: 'project.ExtractVideoEvent',
+            // OnFolderImageCount: 'project.OnFolderImageCount',
+            // OnFolderImageCountChannel: 'project.OnFolderImageCountChannel',
         }
     }
 }

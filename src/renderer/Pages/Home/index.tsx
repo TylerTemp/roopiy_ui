@@ -17,10 +17,43 @@ import Style from './index.scss'
 import enqueueSnackbar from "~/Utils/enqueueSnackbar";
 import usePromiseCache from "~/Utils/usePromiseCache";
 
-import type ProjectTyep from '~s/Types/Project';
+import type ProjectType from '~s/Types/Project';
+import type { ProjectEdit } from '~s/Types/Project';
 import Collapse from "@mui/material/Collapse";
 
-const emptyProject: ProjectTyep = {
+
+const ParseFFmpegTime = (timeStr: string): number => {
+    const floatPart: string = timeStr.includes('.') ? timeStr.split('.')[1] : '';
+    let totalSeconds: number;
+
+    const parts: string[] = timeStr.split(':');
+
+    let hours: string | undefined;
+    let minutes: string | undefined;
+    let seconds: string | undefined;
+
+    if (parts.length === 3) {
+        [hours, minutes, seconds] = parts;
+        totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds);
+    } else if (parts.length === 2) {
+        [minutes, seconds] = parts;
+        totalSeconds = parseInt(minutes) * 60 + parseInt(seconds);
+    } else if (parts.length === 1) {
+        totalSeconds = parseInt(parts[0]);
+        console.log(`parsed: ${parts} -> ${totalSeconds}${floatPart}`);
+    } else {
+        throw new Error(`Invalid time string: ${timeStr}`);
+    }
+
+    console.assert(!isNaN(totalSeconds), `totalSeconds is NaN: ${timeStr}`);
+    const floatValue: number = (floatPart ? parseFloat(`0.${floatPart}`) : 0);
+    console.assert(!isNaN(floatValue), `floatValue is NaN: ${floatPart}`);
+
+    return totalSeconds + floatValue;
+}
+
+
+const emptyProject: ProjectEdit = {
     referenceVideoFile: '',
     referenceVideoSlice: true,
     referenceVideoFrom: '0',
@@ -31,22 +64,31 @@ const emptyProject: ProjectTyep = {
 export default () => {
 
     // const [echo, setEcho] = useState('');
-    const [projectList, setProjectList] = useState<string[]>([]);
+    const [projectFolderList, setProjectFolderList] = useState<string[]>([]);
 
-    const { getPromise, addCache } = usePromiseCache<ProjectTyep>();
+    const { getPromise, addCache } = usePromiseCache<ProjectEdit>();
 
     useEffect(() => {
-        window.electron.ipcRenderer.project.GetList().then(setProjectList);
+        window.electron.ipcRenderer.project.GetList().then(setProjectFolderList);
     }, []);
 
     const [selectedProjectFolder, setSelectedProjectFolder] = useState<string>('');
-    const [project, setProject] = useState<ProjectTyep>(emptyProject);
+    const [projectEdit, setProjectEdit] = useState<ProjectEdit>(emptyProject);
 
-    const isNewProject = useMemo(() => !projectList.includes(selectedProjectFolder), [projectList, selectedProjectFolder]);
+    const isNewProject = useMemo(() => !projectFolderList.includes(selectedProjectFolder), [projectFolderList, selectedProjectFolder]);
     useEffect(() => {
-        if(projectList.includes(selectedProjectFolder)) {
-            getPromise(selectedProjectFolder, () => window.electron.ipcRenderer.project.GetConfig(selectedProjectFolder))
-                .then(setProject);
+        if(projectFolderList.includes(selectedProjectFolder)) {
+            getPromise(
+                selectedProjectFolder,
+                () => window.electron.ipcRenderer.project.GetConfig(selectedProjectFolder)
+                    .then(({referenceVideoFrom, referenceVideoDuration, referenceVideoSlice, ...left}: ProjectType): ProjectEdit => ({
+                        ...left,
+                        referenceVideoSlice,
+                        referenceVideoFrom: referenceVideoSlice? referenceVideoFrom!.toString(): emptyProject.referenceVideoFrom,
+                        referenceVideoTo: referenceVideoSlice? (referenceVideoFrom! + referenceVideoDuration!).toString(): emptyProject.referenceVideoTo,
+                    }))
+            )
+            .then(setProjectEdit);
         }
         // else {
         //     setProject(emptyProject);
@@ -55,13 +97,44 @@ export default () => {
 
     // const inputFileRef = useRef<HTMLInputElement>(null);
 
-    const createProject = () => window.electron.ipcRenderer.project.CreateConfig(selectedProjectFolder, project)
-        .then(() => {
-            addCache(selectedProjectFolder, project);
-            setProjectList(oldList => [selectedProjectFolder, ...oldList]);
-            enqueueSnackbar('Project created', 'success');
-        })
-        .catch(err => enqueueSnackbar(err.message, 'error'));
+    const createProject = () => {
+        const {referenceVideoSlice, referenceVideoFrom, referenceVideoTo, ...left} = projectEdit;
+        if (referenceVideoSlice && (referenceVideoFrom === '' || referenceVideoTo === '')) {
+            enqueueSnackbar('Invalid slice time', 'error');
+            return;
+        }
+
+        let referenceVideoDuration: number | null = null;
+        let referenceVideoFromSeconds: number | null = null;
+        if(referenceVideoSlice) {
+            referenceVideoFromSeconds = referenceVideoFrom === ''? 0: ParseFFmpegTime(referenceVideoFrom);
+            const referenceVideoToSeconds: number = ParseFFmpegTime(referenceVideoTo);
+            referenceVideoDuration = referenceVideoToSeconds - referenceVideoFromSeconds;
+        }
+
+        const project: ProjectType = {
+            ...left,
+            referenceVideoSlice,
+            referenceVideoFrom: referenceVideoFromSeconds,
+            referenceVideoDuration,
+        }
+
+
+        // const project: ProjectType = {
+        return window.electron.ipcRenderer.project.GetVideoSeconds(project.referenceVideoFile)
+            .then((seconds: number) => {
+                const estimateImageCount = Math.round(seconds * 30);
+                // start to extract
+                // 1.  listen on progress
+                // 2.  tell server to extract
+            })
+            // .then(() => {
+            //     addCache(selectedProjectFolder, projectEdit);
+            //     setProjectFolderList(oldList => [selectedProjectFolder, ...oldList]);
+            //     enqueueSnackbar('Project created', 'success');
+            // })
+            // .catch(err => enqueueSnackbar(err.message, 'error'));
+    };
 
     console.log(isNewProject);
 
@@ -74,7 +147,7 @@ export default () => {
                     // console.log(`autoComplete onChange`, newValue);
                     return setSelectedProjectFolder(newValue || '');
                 }}
-                options={projectList}
+                options={projectFolderList}
                 renderInput={({InputProps, InputLabelProps, ...params}) => <TextField
                     {...params}
                     // sx={{minWidth: '200px'}}
@@ -108,8 +181,8 @@ export default () => {
 
             <FileTextField
                 readOnly={!isNewProject}
-                value={project.referenceVideoFile}
-                onChange={(evt) => setProject({...project, referenceVideoFile: evt.target.value})}
+                value={projectEdit.referenceVideoFile}
+                onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoFile: evt.target.value})}
             />
 
             <FormControlLabel
@@ -117,30 +190,30 @@ export default () => {
                 control={<Checkbox
                     readOnly={!isNewProject}
                     disabled={!isNewProject}
-                    checked={project.referenceVideoSlice}
-                    onChange={(evt) => setProject({...project, referenceVideoSlice: evt.target.checked})}
+                    checked={projectEdit.referenceVideoSlice}
+                    onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoSlice: evt.target.checked})}
                 />}
             />
 
-            <Collapse in={project.referenceVideoSlice}>
+            <Collapse in={projectEdit.referenceVideoSlice}>
                 <Stack direction="row" gap={1} >
                     <TextField
                         fullWidth
                         variant="standard"
                         label="From"
                         disabled={!isNewProject}
-                        error={project.referenceVideoSlice && project.referenceVideoFrom === '' && project.referenceVideoTo === ''}
-                        value={project.referenceVideoFrom}
-                        onChange={(evt) => setProject({...project, referenceVideoFrom: evt.target.value})}
+                        error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
+                        value={projectEdit.referenceVideoFrom}
+                        onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoFrom: evt.target.value})}
                     />
                     <TextField
                         fullWidth
                         variant="standard"
                         label="To"
                         disabled={!isNewProject}
-                        error={project.referenceVideoSlice && project.referenceVideoFrom === '' && project.referenceVideoTo === ''}
-                        value={project.referenceVideoTo}
-                        onChange={(evt) => setProject({...project, referenceVideoTo: evt.target.value})}
+                        error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
+                        value={projectEdit.referenceVideoTo}
+                        onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoTo: evt.target.value})}
                     />
                 </Stack>
             </Collapse>
@@ -149,7 +222,7 @@ export default () => {
                 variant="standard"
                 label="Source Video"
                 disabled
-                value={project.sourceVideoFile}
+                value={projectEdit.sourceVideoFile}
                 InputProps={{
                     readOnly: true
                 }}

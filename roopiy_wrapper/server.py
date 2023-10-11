@@ -2,11 +2,12 @@
 Usage:
     server.py [options] <root>
 """
-
+import logging
 import json
 import typing
 import os
 import shutil
+import subprocess
 
 import docpie
 import flask
@@ -32,7 +33,7 @@ class ProjectType(typing.TypedDict):
     referenceVideoFile: str
     referenceVideoSlice: bool
     referenceVideoFrom: str
-    referenceVideoTo: str
+    referenceVideoDuration: str
     sourceVideoFile: str
 
 
@@ -70,28 +71,26 @@ def parse_ffmpeg_time(time_str: str) -> float | int:
 def prepare_project():
     body = flask.request.get_data(as_text=True)
     prepare_project_value: PrepareProjectType = json.loads(body)
-    reference_video_slice_from: str | None = None
-    reference_video_slice_duration: str | None = None
-    if prepare_project_value['Project']['referenceVideoSlice']:
-        from_raw = prepare_project_value['Project']['referenceVideoFrom']
-        from_float = parse_ffmpeg_time(from_raw) if from_raw else 0
-        reference_video_slice_from = str(from_float)
-        print(f'from: {from_raw} -> {reference_video_slice_from}')
-
-        to_raw = prepare_project_value['Project']['referenceVideoTo']
-        if to_raw:
-            to_float = parse_ffmpeg_time(to_raw)
-            reference_video_slice_duration = str(to_float - from_float)
-        else:
-            assert from_raw not in (None, '', '0');
-
-        print(f'to: {to_raw} -> {reference_video_slice_duration}')
+    # reference_video_slice_from: str | None = None
+    # reference_video_slice_duration: str | None = None
+    # if prepare_project_value['Project']['referenceVideoSlice']:
+    #     from_raw = prepare_project_value['Project']['referenceVideoFrom']
+    #     from_float = parse_ffmpeg_time(from_raw) if from_raw else 0
+    #     reference_video_slice_from = str(from_float)
+    #     print(f'from: {from_raw} -> {reference_video_slice_from}')
+    #
+    #     to_raw = prepare_project_value['Project']['referenceVideoTo']
+    #     if to_raw:
+    #         to_float = parse_ffmpeg_time(to_raw)
+    #         reference_video_slice_duration = str(to_float - from_float)
+    #     else:
+    #         assert from_raw not in (None, '', '0');
+    #
+    #     print(f'to: {to_raw} -> {reference_video_slice_duration}')
 
     work_path = prepare_project_value['Path']
 
-    save_cut: str | None = None
-    if reference_video_slice_from or reference_video_slice_duration:
-        save_cut = os.path.join(work_path, 'source.mp4')
+    save_cut: str | None = os.path.join(work_path, 'source.mp4') if prepare_project_value['Project']['referenceVideoSlice'] else None
 
     frames_folder = os.path.join(work_path, 'frames')
     print(f'frames_folder: {frames_folder}')
@@ -102,12 +101,12 @@ def prepare_project():
         prepare_project_value['Project']['referenceVideoFile'],
         frames_folder,
         fps=30,
-        ss=reference_video_slice_from,
-        to=reference_video_slice_duration,
+        ss=prepare_project_value['Project']['referenceVideoFrom'],
+        to=prepare_project_value['Project']['referenceVideoDuration'],
         save_cut=save_cut
     )
 
-    if not save_cut:
+    if not prepare_project_value['Project']['referenceVideoSlice']:
         shutil.copyfile(
             prepare_project['Project']['referenceVideoFile'],
             os.path.join(work_path, 'source.mp4')
@@ -117,4 +116,5 @@ def prepare_project():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     app.run(port=8787, debug=True)

@@ -64,7 +64,7 @@ const installExtensions = async () => {
 
 const createWindow = async () => {
     if (isDebug) {
-        // await installExtensions();
+        await installExtensions();
     }
 
     const RESOURCES_PATH = app.isPackaged
@@ -75,7 +75,9 @@ const createWindow = async () => {
         return path.join(RESOURCES_PATH, ...paths);
     };
 
-    const {width, height} = screen.getPrimaryDisplay().workAreaSize
+    // const {width, height} = screen.getPrimaryDisplay().workAreaSize
+    const width = 800;
+    const height = 600;
 
     mainWindow = new BrowserWindow({
         show: false,

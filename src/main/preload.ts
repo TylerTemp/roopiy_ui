@@ -2,20 +2,7 @@
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import ProjectType from '~s/Types/Project';
-
-export const Channel = {
-    project: {
-        k: 'project',
-        v: {
-            GetList: 'GetList',
-            GetConfig: 'GetConfig',
-            // CreateConfig: 'CreateConfig',
-            GetVideoSeconds: 'GetVideoSeconds',
-            OnFolderImageCount: 'project.OnFolderImageCount',
-            OnFolderImageCountChannel: 'project.OnFolderImageCountChannel',
-        }
-    }
-}
+import Channel from './IpcChannel';
 
 const electronHandler = {
     ipcRenderer: {

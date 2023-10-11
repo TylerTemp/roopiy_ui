@@ -75,9 +75,9 @@ const createWindow = async () => {
         return path.join(RESOURCES_PATH, ...paths);
     };
 
-    // const {width, height} = screen.getPrimaryDisplay().workAreaSize
-    const width = 800;
-    const height = 600;
+    const {width, height} = screen.getPrimaryDisplay().workAreaSize
+    // const width = 800;
+    // const height = 600;
 
     mainWindow = new BrowserWindow({
         show: false,
@@ -104,7 +104,7 @@ const createWindow = async () => {
         if (process.env.START_MINIMIZED) {
             mainWindow.minimize();
         } else {
-            // mainWindow.maximize();
+            mainWindow.maximize();
             mainWindow.show();
         }
     });

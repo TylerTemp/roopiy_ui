@@ -1,5 +1,5 @@
 import type { IpcMain } from 'electron';
-import { Channel } from './preload';
+import Channel from './IpcChannel';
 import { GetList, ExtractVideo, GetConfig, GetVideoSeconds } from './Project';
 import ProjectType from '~s/Types/Project';
 

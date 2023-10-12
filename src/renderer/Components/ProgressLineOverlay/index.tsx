@@ -1,8 +1,8 @@
 import { PropsWithChildren } from 'react';
-import Style from './index.css';
 
 import { useTheme } from '@mui/material/styles'
 import LinearProgress from '@mui/material/LinearProgress';
+import Style from './index.css';
 
 export default ({loading, height, children}: PropsWithChildren<{loading: boolean, height?: number | string}>) => {
     if(!loading) {

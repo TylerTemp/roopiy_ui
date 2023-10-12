@@ -7,7 +7,10 @@ export default {
             // CreateConfig: 'CreateConfig',
             GetVideoSeconds: 'GetVideoSeconds',
             ExtractVideo: 'ExtractVideo',
-            ExtractVideoEvent: 'project.ExtractVideoEvent',
+            ExtractVideoEvent: 'project.ExtractVideo.Event',
+            ExtractFacesInProject: 'ExtractFacesInProject',
+            ExtractFacesInProjectEvent: 'project.ExtractFacesInProject.Event',
+            SaveConfig: 'SaveConfig',
             // OnFolderImageCount: 'project.OnFolderImageCount',
             // OnFolderImageCountChannel: 'project.OnFolderImageCountChannel',
         }

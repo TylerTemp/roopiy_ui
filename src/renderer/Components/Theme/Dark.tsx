@@ -1,5 +1,5 @@
-import { createTheme } from "./Basic";
 import { blue } from "@mui/material/colors";
+import { createTheme } from "./Basic";
 
 export default createTheme({
     typography: {

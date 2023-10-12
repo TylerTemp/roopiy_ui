@@ -17,6 +17,8 @@ import flask_sock
 
 from roopiy.faces import load_face_analyser, load_face_enhancer, load_face_swapper
 from roopiy.extract_video import extract_frames
+from roopiy.identify import identify_faces_in_image
+from roopiy.utils import FaceJSONEncoder, Face
 
 app = flask.Flask(__name__)
 sock = flask_sock.Sock(app)
@@ -71,30 +73,12 @@ def parse_ffmpeg_time(time_str: str) -> float | int:
     return total_seconds + (float(f'0.{float_part}') if float_part else 0)
 
 
-# @app.route('/extract_video', methods=['POST'])
 @sock.route('/extract_video')
 def extract_video(ws):
-    print('extract_video')
+    logger = logging.getLogger('roopiy_wrapper.extract_video')
+    logger.debug('extract_video')
 
-    # body = flask.request.get_data(as_text=True)
     prepare_project_value: PrepareProjectType = json.loads(ws.receive())
-    # reference_video_slice_from: str | None = None
-    # reference_video_slice_duration: str | None = None
-    # if prepare_project_value['Project']['referenceVideoSlice']:
-    #     from_raw = prepare_project_value['Project']['referenceVideoFrom']
-    #     from_float = parse_ffmpeg_time(from_raw) if from_raw else 0
-    #     reference_video_slice_from = str(from_float)
-    #     print(f'from: {from_raw} -> {reference_video_slice_from}')
-    #
-    #     to_raw = prepare_project_value['Project']['referenceVideoTo']
-    #     if to_raw:
-    #         to_float = parse_ffmpeg_time(to_raw)
-    #         reference_video_slice_duration = str(to_float - from_float)
-    #     else:
-    #         assert from_raw not in (None, '', '0');
-    #
-    #     print(f'to: {to_raw} -> {reference_video_slice_duration}')
-
     work_path = prepare_project_value['Path']
 
     slice_video: bool = prepare_project_value['Project']['referenceVideoSlice']
@@ -102,19 +86,10 @@ def extract_video(ws):
     save_cut: str | None = os.path.join(work_path, 'source.mp4') if slice else None
 
     frames_folder = os.path.join(work_path, 'frames')
-    print(f'frames_folder: {frames_folder}')
+    logger.debug(f'frames_folder: {frames_folder}')
     if os.path.exists(frames_folder):
         shutil.rmtree(frames_folder)
     os.makedirs(frames_folder)
-
-    # extract_frames(
-    #     prepare_project_value['Project']['referenceVideoFile'],
-    #     frames_folder,
-    #     fps=30,
-    #     ss=prepare_project_value['Project']['referenceVideoFrom'],
-    #     to=prepare_project_value['Project']['referenceVideoDuration'],
-    #     save_cut=save_cut
-    # )
 
     ss: str | None = str(prepare_project_value['Project']['referenceVideoFrom']) if slice_video else None
     to: str | None = str(prepare_project_value['Project']['referenceVideoDuration']) if slice_video else None
@@ -135,7 +110,7 @@ def extract_video(ws):
             # print(f'send {last_folder_count}')
             ws.send(str(last_folder_count))
     else:
-        print('ws end on process finished')
+        logger.debug('ws end on process finished')
         ws.send('end')
 
     ws.close()
@@ -145,7 +120,15 @@ def extract_video(ws):
             os.path.join(work_path, 'source.mp4')
         )
 
-    # return 'OK'
+
+@app.route('/identify_faces', methods=['GET'])
+def identify_faces():
+    file_path = flask.request.args.get('file')
+    assert file_path is not None
+
+    faces: list[Face]
+    _, faces = identify_faces_in_image(face_analyser, file_path)
+    return json.dumps(faces, cls=FaceJSONEncoder)
 
 
 if __name__ == '__main__':

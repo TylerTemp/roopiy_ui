@@ -32,6 +32,8 @@ export default ({defaultValue, value, onChange, inputRef, readOnly=false}: FileT
 
     const [curValue, setCurValue] = useState<string>(value || defaultValue || '');
 
+    console.log('FileTextField', curValue, value);
+
     useEffect(() => {
         if(value !== undefined && value != curValue) {
             setCurValue(value);}
@@ -41,6 +43,7 @@ export default ({defaultValue, value, onChange, inputRef, readOnly=false}: FileT
 
     return <TextField
         required
+        fullWidth
         variant="standard"
         label="Reference Video File"
         inputRef={inputRef}

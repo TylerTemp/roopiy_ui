@@ -1,8 +1,8 @@
 import CircularProgress from '@mui/material/CircularProgress';
 import { PropsWithChildren } from 'react';
+import { useTheme } from '@mui/material/styles'
 import Style from './index.css';
 
-import { useTheme } from '@mui/material/styles'
 
 export default ({loading, height, children}: PropsWithChildren<{loading: boolean, height?: number | string}>) => {
     if(!loading) {

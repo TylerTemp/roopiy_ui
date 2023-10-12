@@ -15,7 +15,7 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': 'error',
     'prettier/prettier': 0,
     'react/function-component-definition': [
-      false
+      0
     ]
   },
   parserOptions: {

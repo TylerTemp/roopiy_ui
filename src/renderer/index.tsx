@@ -19,8 +19,7 @@ import NotFound from '~/Pages/NotFound'
 // const root = createRoot(rootElement!);
 // root.render(<>?????</>);
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<>
-    <ThemeProvider>
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<ThemeProvider>
         <CssBaseline />
         <ErrorBoundary>
             <ToastContainer />
@@ -35,5 +34,4 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<>
                 </HelmetProvider>
             </Router>
         </ErrorBoundary>
-    </ThemeProvider>
-</>);
+    </ThemeProvider>);

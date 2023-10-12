@@ -17,8 +17,8 @@ import RotateStyle from "~/Components/RotateClass/index.css";
 // import { useTheme } from '@mui/material';
 import classNames from 'classnames';
 import useTheme from '@mui/material/styles/useTheme';
-import Style from "./index.css";
 import LinearProgress from '@mui/material/LinearProgress';
+import Style from "./index.css";
 import DarkLightToggle from './DarkLightToggle';
 
 export const StyleContentMarginNoTop = Style.contentMarginNoTop;

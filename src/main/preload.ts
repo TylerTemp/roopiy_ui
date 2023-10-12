@@ -62,11 +62,22 @@ const electronHandler = {
                     folder,
                     JSON.stringify(config))
                 .then(() => ipcRenderer.removeListener(channelName, callback)) as Promise<void>;
+            },
 
-                // return () => {
-                //     ipcRenderer.removeListener(channelName, callback);
-                // };
-            }
+            ExtractFacesInProject: (projectFolder: string, callback: (curCount: number, totalCount: number, faceCount: number, name: string) => void): Promise<void> => {
+                const channelName = `${Channel.project.v.ExtractFacesInProjectEvent}.${projectFolder}`;
+                console.log(`setup channel ${channelName}`);
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, curCount: number, totalCount: number, faceCount: number, name: string) => {
+                    callback(curCount, totalCount, faceCount, name);
+                });
+
+                return ipcRenderer.invoke(Channel.project.k, Channel.project.v.ExtractFacesInProject,
+                        channelName,
+                        projectFolder)
+                    .then(() => ipcRenderer.removeListener(channelName, callback)) as Promise<void>;
+            },
+
+            SaveConfig: (projectFolder: string, config: ProjectType) => ipcRenderer.invoke(Channel.project.k, Channel.project.v.SaveConfig, projectFolder, config) as Promise<void>,
 
             // CreateConfig: (name: string, config: ProjectType) => ipcRenderer.invoke('project', 'CreateConfig', name, JSON.stringify(config)) as Promise<void>,
         }

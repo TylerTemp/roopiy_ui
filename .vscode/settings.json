@@ -4,7 +4,9 @@
     ".prettierrc": "jsonc",
     ".eslintignore": "ignore"
   },
-  
+
+  "eslint.enable": false,
+
   "eslint.validate": [
     "javascript",
     "javascriptreact",

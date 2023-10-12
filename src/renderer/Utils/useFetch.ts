@@ -11,7 +11,7 @@ export interface FetchResult<T> {
 
 type VoidFunc = () => void;
 
-export default <T,>(url: string, defaultValue: T, init: RequestInit={}, transform? : ResponseTransformFunc<T>): FetchResult<T> => {
+export default <T,>(url: string, defaultValue: T, init: RequestInit={}, transform : ResponseTransformFunc<T>|undefined=undefined): FetchResult<T> => {
     const [loading, setLoading] = useState<boolean>(true);
     const [data, setData] = useState<T>(defaultValue);
     const [error, setError] = useState<Error | null>(null);
@@ -24,7 +24,7 @@ export default <T,>(url: string, defaultValue: T, init: RequestInit={}, transfor
         setError(null);
         setLoading(false);
     };
-    const setErrorNoLoading = (error: Error) => {
+    const setErrorNoLoading = (err: Error) => {
         // console.log(error);
         // console.log(error.name);
         // if(error instanceof DOMException && error.name === 'AbortError') {
@@ -34,12 +34,12 @@ export default <T,>(url: string, defaultValue: T, init: RequestInit={}, transfor
         //     return;
         // }
 
-        if(!(error instanceof DOMException && error.name === 'AbortError')) {
-            console.error(error);
+        if(!(err instanceof DOMException && err.name === 'AbortError')) {
+            console.error(err);
         }
 
         // console.log(`set error`);
-        setError(error);
+        setError(err);
         setData(defaultValue);
         setLoading(false);
     };

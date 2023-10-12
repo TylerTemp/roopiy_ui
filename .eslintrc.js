@@ -1,6 +1,6 @@
 module.exports = {
   extends: 'erb',
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', "unused-imports"],
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
@@ -16,7 +16,9 @@ module.exports = {
     'prettier/prettier': 0,
     'react/function-component-definition': [
       0
-    ]
+    ],
+    "unused-imports/no-unused-imports-ts": 2,
+    "no-console": "off",
   },
   parserOptions: {
     ecmaVersion: 2022,
@@ -34,5 +36,8 @@ module.exports = {
     'import/parsers': {
       '@typescript-eslint/parser': ['.ts', '.tsx'],
     },
+  },
+  "globals": {
+    "RequestInit": true
   },
 };

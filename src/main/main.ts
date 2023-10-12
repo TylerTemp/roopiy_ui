@@ -12,7 +12,6 @@ import path from 'path';
 import { screen, app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import IpcSetup from './IpcSetup';
 

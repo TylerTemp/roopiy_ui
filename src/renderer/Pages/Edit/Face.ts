@@ -55,3 +55,10 @@ export const RectDistance = (rect1: Rect, rect2: Rect): number => {
     const result = Math.sqrt((center1.x - center2.x)**2 + (center1.y - center2.y)**2);
     return result;
 }
+
+export const RectScale = (rect: Rect, scale: number): Rect => ({
+    top: rect.top * scale,
+    left: rect.left * scale,
+    bottom: rect.bottom * scale,
+    right: rect.right * scale,
+});

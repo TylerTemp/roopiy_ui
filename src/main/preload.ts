@@ -2,6 +2,7 @@
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import ProjectType from '~s/Types/Project';
+import { FrameFaces } from '~s/Types/Edit';
 import Channel from './IpcChannel';
 
 const electronHandler = {
@@ -26,17 +27,17 @@ const electronHandler = {
         //     return ipcRenderer.invoke(channel, ...args);
         // },
 
-        project: {
-            GetList: () => ipcRenderer.invoke(Channel.project.k, Channel.project.v.GetList) as Promise<string[]>,
+        Project: {
+            GetList: () => ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.GetList) as Promise<string[]>,
             GetConfig: (name: string): Promise<ProjectType> => {
-                const result = ipcRenderer.invoke(Channel.project.k, Channel.project.v.GetConfig, name);
+                const result = ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.GetConfig, name);
                 console.assert(result !== null);
                 return result as Promise<ProjectType>;
             },
 
             GetVideoSeconds: (videoFile: string): Promise<number> => {
-                console.log(`invoke`, Channel.project.k, Channel.project.v.GetVideoSeconds, videoFile);
-                return ipcRenderer.invoke(Channel.project.k, Channel.project.v.GetVideoSeconds, videoFile) as Promise<number>;
+                console.log(`invoke`, Channel.Project.k, Channel.Project.v.GetVideoSeconds, videoFile);
+                return ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.GetVideoSeconds, videoFile) as Promise<number>;
             },
             // OnFolderImageCount: (folder: string, callback: (count:number) => void): (() => void) => {
             //     const channelName = `${Channel.project.v.OnFolderImageCountChannel}.${folder}`;
@@ -50,14 +51,14 @@ const electronHandler = {
             //     };
             // }
             ExtractVideo: (folder: string, config: ProjectType, callback: (count:number) => void): Promise<void> => {
-                const channelName = `${Channel.project.v.ExtractVideoEvent}.${folder}`;
+                const channelName = `${Channel.Project.v.ExtractVideoEvent}.${folder}`;
 
                 console.log(`setup channel ${channelName}`)
                 ipcRenderer.on(channelName, (_event: IpcRendererEvent, count: number, end: boolean) => {
                     callback(count);
                 });
 
-                return ipcRenderer.invoke(Channel.project.k, Channel.project.v.ExtractVideo,
+                return ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.ExtractVideo,
                     channelName,
                     folder,
                     JSON.stringify(config))
@@ -65,22 +66,29 @@ const electronHandler = {
             },
 
             ExtractFacesInProject: (projectFolder: string, callback: (curCount: number, totalCount: number, faceCount: number, name: string) => void): Promise<void> => {
-                const channelName = `${Channel.project.v.ExtractFacesInProjectEvent}.${projectFolder}`;
+                const channelName = `${Channel.Project.v.ExtractFacesInProjectEvent}.${projectFolder}`;
                 console.log(`setup channel ${channelName}`);
                 ipcRenderer.on(channelName, (_event: IpcRendererEvent, curCount: number, totalCount: number, faceCount: number, name: string) => {
                     callback(curCount, totalCount, faceCount, name);
                 });
 
-                return ipcRenderer.invoke(Channel.project.k, Channel.project.v.ExtractFacesInProject,
+                return ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.ExtractFacesInProject,
                         channelName,
                         projectFolder)
                     .then(() => ipcRenderer.removeListener(channelName, callback)) as Promise<void>;
             },
 
-            SaveConfig: (projectFolder: string, config: ProjectType) => ipcRenderer.invoke(Channel.project.k, Channel.project.v.SaveConfig, projectFolder, config) as Promise<void>,
+            SaveConfig: (projectFolder: string, config: ProjectType) => ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.SaveConfig, projectFolder, config) as Promise<void>,
 
             // CreateConfig: (name: string, config: ProjectType) => ipcRenderer.invoke('project', 'CreateConfig', name, JSON.stringify(config)) as Promise<void>,
-        }
+        },
+        Edit: {
+            GetProjectFrameFaces: (projectFolder: string): Promise<FrameFaces[]> => {
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GetProjectFrameFaces, projectFolder);
+                console.assert(result !== null);
+                return result as Promise<FrameFaces[]>;
+            },
+        },
     },
 };
 

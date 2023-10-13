@@ -1,6 +1,8 @@
 /* eslint import/prefer-default-export: off */
 import { URL } from 'url';
-import path from 'path';
+import { join, resolve } from 'path';
+import { ProjectsRoot } from './Utils/Config';
+import { net } from 'electron';
 
 export function resolveHtmlPath(htmlFileName: string) {
   if (process.env.NODE_ENV === 'development') {
@@ -9,5 +11,13 @@ export function resolveHtmlPath(htmlFileName: string) {
     url.pathname = htmlFileName;
     return url.href;
   }
-  return `file://${path.resolve(__dirname, '../renderer/', htmlFileName)}`;
+  return `file://${resolve(__dirname, '../renderer/', htmlFileName)}`;
+}
+
+export const GetProjectResource = (request: Request): Promise<Response> => {
+    const uri = request.url.slice('project://'.length);
+
+    const filePath = join(ProjectsRoot, uri);
+
+    return net.fetch(`file://${filePath}`);
 }

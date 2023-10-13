@@ -4,7 +4,9 @@ import { join } from 'path';
 import type ProjectType from '~s/Types/Project';
 import type ApiPrepareProject from '~m/Project/ApiPrepareProject';
 import WebSocket from 'ws';
-import Face from '~s/Types/Face';
+import type Face from '~s/Types/Face';
+import { type FrameFaces } from '~s/Types/Edit';
+import ImageSize from 'image-size';
 import {ProjectsRoot, WrapperHost} from '../Utils/Config';
 
 
@@ -40,7 +42,7 @@ export const GetVideoSeconds = (videoFile: string): number => {
     const outputAsJSON = JSON.parse(result.stdout);
     const durationStr = outputAsJSON.streams[0].duration;
     const duration: number = parseFloat(durationStr);
-    console.assert(!isNaN(duration), `duration is NaN: ${durationStr}`);
+    console.assert(!Number.isNaN(duration), `duration is NaN: ${durationStr}`);
     return duration;
 }
 
@@ -95,42 +97,45 @@ export const ExtractVideo = (projectFolder: string, config: ProjectType, callbac
 }
 
 
-export const ExtractFacesInProject = (projectFolder: string, callback: (curCount: number, totalCount: number, faceCount: number, name: string) => void): Promise<void> => {
+export const ExtractFacesInProject = async (projectFolder: string, callback: (curCount: number, totalCount: number, faceCount: number, name: string) => void): Promise<void> => {
     const rootPath: string = join(ProjectsRoot, projectFolder, 'frames');
     const images = readdirSync(rootPath, { withFileTypes: true })
         .filter(dirent => !dirent.isDirectory() && dirent.name.endsWith('.png'));
 
-    return new Promise<void>(async (resolve, reject) => {
-        for (let index = 0; index < images.length; index++) {
-            const imageFile: Dirent = images[index];
-            const url = `http://${WrapperHost}/identify_faces?file=${encodeURIComponent(join(rootPath, imageFile.name))}`;
-            let respText;
-            try {
-                respText = await fetch(url).then(resp => resp.text());
-            }
-            catch (e) {
-                reject(e);
-                return;
-            }
-            let faces: Face[];
+    for (let index = 0; index < images.length; index+=1) {
+        const imageFile: Dirent = images[index];
+        const url = `http://${WrapperHost}/identify_faces?file=${encodeURIComponent(join(rootPath, imageFile.name))}`;
 
-            try {
-                faces = JSON.parse(respText) as Face[];
-            }
-            catch (e) {
-                console.error(`error parsing json: ${respText}`);
-                reject(e);
-                return;
-            }
+        try {
+            // eslint-disable-next-line no-await-in-loop
+            const facesCount: number = await fetch(url)
+                .then(resp => resp.json() as Promise<Face[]>)
+                .then(faces => {
+                    const imagePath = join(rootPath, imageFile.name);
+                    const dimensions = ImageSize(imagePath);
+                    console.assert(dimensions.width, `width is undefined for ${imagePath}`);
+                    console.assert(dimensions.height, `height is undefined for ${imagePath}`);
 
-            const filePath = join(rootPath, `${imageFile.name  }.json`);
-            console.log(`writing config to ${filePath}`);
-            writeFileSync(filePath, respText);
+                    const frameFaces: FrameFaces = {
+                        frameFile: imageFile.name,
+                        faces,
+                        width: dimensions.width as number,
+                        height: dimensions.height as number,
+                    };
 
-            callback(index+1, images.length, faces.length, imageFile.name);
+                    const filePath = join(rootPath, `${imageFile.name}.json`);
+                    console.log(`writing config to ${filePath}`);
+                    writeFileSync(filePath, JSON.stringify(frameFaces, null, 4));
+                    return faces.length;
+                });
+
+            callback(index+1, images.length, facesCount, imageFile.name);
+        } catch (error) {
+            return Promise.reject(error);
         }
-        resolve();
-    });
+    }
+
+    return Promise.resolve();
 }
 
 

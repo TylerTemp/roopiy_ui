@@ -11,6 +11,7 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from '~/Components/Layout'
 
 import Home from '~/Pages/Home'
+import Edit from '~/Pages/Edit'
 import NotFound from '~/Pages/NotFound'
 
 // import App from "./components/App";
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<Them
                     <Routes>
                         <Route path="/" element={<Layout />}>
                             <Route index element={<Home />} />
+                            <Route path="edit/:projectFolder" element={<Edit />} />
                             <Route path="*" element={<NotFound />} />
                         </Route>
                     </Routes>

@@ -9,10 +9,10 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { screen, app, BrowserWindow, shell, ipcMain } from 'electron';
+import { screen, app, protocol, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { resolveHtmlPath } from './util';
+import { resolveHtmlPath, GetProjectResource } from './util';
 import IpcSetup from './IpcSetup';
 
 class AppUpdater {
@@ -142,6 +142,7 @@ app
     .whenReady()
     .then(() => {
         createWindow();
+        protocol.handle('project', GetProjectResource);
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the
             // dock icon is clicked and there are no other windows open.

@@ -91,7 +91,7 @@ export default () => {
     const { getPromise, addCache } = usePromiseCache<ProjectEdit>();
 
     useEffect(() => {
-        window.electron.ipcRenderer.project.GetList().then(setProjectFolderList);
+        window.electron.ipcRenderer.Project.GetList().then(setProjectFolderList);
     }, []);
 
     const [selectedProjectFolder, setSelectedProjectFolder] = useState<string>('');
@@ -107,7 +107,7 @@ export default () => {
 
         getPromise(
             projectFolder,
-            () => window.electron.ipcRenderer.project.GetConfig(projectFolder)
+            () => window.electron.ipcRenderer.Project.GetConfig(projectFolder)
                 .then(ProjecetToEdit)
         )
         .then(result => {
@@ -144,7 +144,7 @@ export default () => {
         }
 
         setLoading({loading: true, loadingText: 'Extracting video', loadingProgress: -1});
-        return window.electron.ipcRenderer.project.GetVideoSeconds(project.referenceVideoFile)
+        return window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
             .then((seconds: number) => {
                 console.log(seconds);
                 if(referenceVideoSlice && referenceVideoDuration! <= 0) {
@@ -160,7 +160,7 @@ export default () => {
                 }
                 const duration = referenceVideoSlice? project.referenceVideoDuration!: seconds;
                 const estimateImageCount = Math.round(duration * 30);
-                return window.electron.ipcRenderer.project.ExtractVideo(
+                return window.electron.ipcRenderer.Project.ExtractVideo(
                     selectedProjectFolder,
                     project,
                     // value => console.log(`frame:`, value, estimateImageCount),
@@ -169,7 +169,7 @@ export default () => {
             })
 
             .then(() => setLoading({loading: true, loadingText: 'Extracting faces', loadingProgress: -1}))
-            .then(() => window.electron.ipcRenderer.project.ExtractFacesInProject(
+            .then(() => window.electron.ipcRenderer.Project.ExtractFacesInProject(
                 selectedProjectFolder,
                 (curCount: number, totalCount: number, faceCount: number, name: string)=> setLoading({
                     loading: true,
@@ -180,7 +180,7 @@ export default () => {
 
             .then(() => {
                 setLoading({loading: true, loadingText: 'Saving project', loadingProgress: -1});
-                return window.electron.ipcRenderer.project.SaveConfig(selectedProjectFolder, project);
+                return window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
             })
             .then(() => addCache(selectedProjectFolder, ProjecetToEdit(project)))
             .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))

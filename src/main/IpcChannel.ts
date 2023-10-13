@@ -1,18 +1,24 @@
 export default {
-    project: {
-        k: 'project',
+    Project: {
+        k: 'Project',
         v: {
             GetList: 'GetList',
             GetConfig: 'GetConfig',
             // CreateConfig: 'CreateConfig',
             GetVideoSeconds: 'GetVideoSeconds',
             ExtractVideo: 'ExtractVideo',
-            ExtractVideoEvent: 'project.ExtractVideo.Event',
+            ExtractVideoEvent: 'Project.ExtractVideo.Event',
             ExtractFacesInProject: 'ExtractFacesInProject',
-            ExtractFacesInProjectEvent: 'project.ExtractFacesInProject.Event',
+            ExtractFacesInProjectEvent: 'Project.ExtractFacesInProject.Event',
             SaveConfig: 'SaveConfig',
             // OnFolderImageCount: 'project.OnFolderImageCount',
             // OnFolderImageCountChannel: 'project.OnFolderImageCountChannel',
+        }
+    },
+    Edit: {
+        k: 'Edit',
+        v: {
+            GetProjectFrameFaces: 'GetProjectFrameFaces',
         }
     }
 }

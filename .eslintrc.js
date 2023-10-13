@@ -19,6 +19,9 @@ module.exports = {
     ],
     "unused-imports/no-unused-imports-ts": 2,
     "no-console": "off",
+    "import/prefer-default-export": "off",
+    "react/jsx-no-useless-fragment": "off",
+    "react/jsx-props-no-spreading": "off",
   },
   parserOptions: {
     ecmaVersion: 2022,
@@ -38,6 +41,7 @@ module.exports = {
     },
   },
   "globals": {
-    "RequestInit": true
+    "RequestInit": true,
+    "NodeJS": true,
   },
 };

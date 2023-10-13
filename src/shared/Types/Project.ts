@@ -7,7 +7,6 @@ interface ProjectBase {
 }
 
 
-
 export interface ProjectEdit extends ProjectBase {
     referenceVideoFrom: string,
     referenceVideoTo: string,

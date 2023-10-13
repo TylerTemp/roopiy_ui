@@ -24,7 +24,7 @@ const FrameFacesRenderer = ({getResource: getFrameFaces, projectFolder}: FrameFa
                 key: index.toString(),
                 rect: GetRectFromFace(eachFace),
             }))} />
-        <div>frame: {frameFile}</div>
+        <div>frame: {frameFile} / {faces.length}</div>
         {/* <div>faces: {frameFace.faces.map((face, index) => <div key={index}>
             <div>face: {index}</div>
         </div>)}</div> */}

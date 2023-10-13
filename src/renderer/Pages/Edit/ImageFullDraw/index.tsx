@@ -58,21 +58,17 @@ export default ({src, width, height, drawInfos}: Props) => {
             image.src = src;
             image.onload = () => {
                 ctx.drawImage(image, 0, 0, canvasWidth, canvasResizedHeight);
-            }
 
-            ctx.beginPath();
-            ctx.lineWidth = 7;
-            ctx.fillStyle = 'yellow';
-            ctx.strokeStyle = 'black';
-            for (let drawIndex = 0; drawIndex < drawInfos.length; drawIndex+=1) {
-                const {rect} = drawInfos[drawIndex];
+                ctx.lineWidth = 7;
+                ctx.fillStyle = 'yellow';
+                ctx.strokeStyle = 'black';
+                for (let drawIndex = 0; drawIndex < drawInfos.length; drawIndex+=1) {
+                    const {rect} = drawInfos[drawIndex];
 
-                const rectScale = RectScale(rect, height / width);
-                ctx.rect(rectScale.left, rectScale.top, rectScale.right - rectScale.left, rectScale.bottom - rectScale.top);
-                // ctx.rect(0, 0, canvasWidth, canvasResizedHeight);
-                // ctx.stroke();
-                ctx.fill();
-                // ctx.fillRect(rectScale.left, rectScale.top, rectScale.right - rectScale.left, rectScale.bottom - rectScale.top);
+                    const rectScale = RectScale(rect, canvasWidth / width);
+                    ctx.rect(rectScale.left, rectScale.top, rectScale.right - rectScale.left, rectScale.bottom - rectScale.top);
+                    ctx.stroke();
+                }
             }
         }
     }, []);
@@ -93,24 +89,6 @@ export default ({src, width, height, drawInfos}: Props) => {
     return <canvas
         ref={handleCanvas}
         className={Style.full}
-        // style={canvasSize === null? undefined: {
-        //     width: `${canvasSize.width}px`,
-        //     height: `${canvasSize.height}px`,
-        // }}
-        // width={canvasSize?.width}
         height={canvasSize?.height}
     />;
-
-    // useEffect(() => {
-    //     const scrollCurrent = containerDiv.current;
-    //     if(scrollCurrent) {
-    //         const containerWidth = scrollCurrent.clientWidth;
-    //         const containerHeight = scrollCurrent.clientHeight;
-
-    //     }
-    // }, [containerDiv.current]);
-
-    // return <Box className={Style.full} ref={containerDiv}>
-
-    // </Box>
 }

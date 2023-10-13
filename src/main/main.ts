@@ -12,7 +12,7 @@ import path from 'path';
 import { screen, app, protocol, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { resolveHtmlPath, GetProjectResource } from './util';
+import { resolveHtmlPath, GetProjectResource, GetExtResource } from './util';
 import IpcSetup from './IpcSetup';
 
 class AppUpdater {
@@ -143,6 +143,7 @@ app
     .then(() => {
         createWindow();
         protocol.handle('project', GetProjectResource);
+        protocol.handle('extfile', GetExtResource);
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the
             // dock icon is clicked and there are no other windows open.

@@ -2,7 +2,8 @@ import type { IpcMain } from 'electron';
 import ProjectType from '~s/Types/Project';
 import Channel from './IpcChannel';
 import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig } from './Project';
-import { GetProjectFrameFaces } from './Edit';
+import { GetProjectFrameFaces, GetImageSize } from './Edit';
+import { IdentifyFaces } from './Utils/Face';
 
 export default (ipcMain: IpcMain): void => {
 
@@ -51,8 +52,25 @@ export default (ipcMain: IpcMain): void => {
                 const [_, projectFolder] = args;
                 return GetProjectFrameFaces(projectFolder as string);
             }
+            case Channel.Edit.v.GetImageSize:
+            {
+                const [_, imagePath] = args;
+                return GetImageSize(imagePath as string);
+            }
             default:
                 throw new Error(`unknown channel ${Channel.Edit.k}:${args[0]} with args: ${args.slice(1)}`);
         }
     });
+
+    ipcMain.handle(Channel.Util.k, async (event, ...args) => {
+        switch (args[0]) {
+            case Channel.Util.v.IdentifyFaces:
+            {
+                const [_, imagePath] = args;
+                return IdentifyFaces(imagePath as string);
+            }
+            default:
+                throw new Error(`unknown channel ${Channel.Edit.k}:${args[0]} with args: ${args.slice(1)}`);
+        }
+    })
 }

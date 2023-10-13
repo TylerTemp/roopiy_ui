@@ -33,10 +33,10 @@ export interface Rect {
 export const GetRectFromFace = (face: Face): Rect => {
     const bbox = face.bbox.value;
     const result: Rect = {
-        top: bbox[0],
-        left: bbox[1],
-        bottom: bbox[2],
-        right: bbox[3],
+        top: bbox[1],
+        left: bbox[0],
+        bottom: bbox[3],
+        right: bbox[2],
     }
     return result;
 }

@@ -3,6 +3,7 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import ProjectType from '~s/Types/Project';
 import { FrameFaces } from '~s/Types/Edit';
+import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
 
 const electronHandler = {
@@ -88,7 +89,18 @@ const electronHandler = {
                 console.assert(result !== null);
                 return result as Promise<FrameFaces[]>;
             },
+            GetImageSize: (imagePath: string): Promise<{width: number, height: number}> => {
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GetImageSize, imagePath);
+                console.assert(result !== null);
+                return result as Promise<{width: number, height: number}>;
+            }
         },
+
+        Util: {
+            IdentifyFaces: (imagePath: string): Promise<Face[]> => {
+                return ipcRenderer.invoke(Channel.Util.k, Channel.Util.v.IdentifyFaces, imagePath) as Promise<Face[]>;
+            },
+        }
     },
 };
 

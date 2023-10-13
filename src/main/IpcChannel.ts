@@ -19,6 +19,13 @@ export default {
         k: 'Edit',
         v: {
             GetProjectFrameFaces: 'GetProjectFrameFaces',
+            GetImageSize: 'GetImageSize',
+        }
+    },
+    Util: {
+        k: 'Util',
+        v: {
+            IdentifyFaces: 'IdentifyFaces',
         }
     }
 }

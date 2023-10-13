@@ -4,10 +4,10 @@ import { join } from 'path';
 import type ProjectType from '~s/Types/Project';
 import type ApiPrepareProject from '~m/Project/ApiPrepareProject';
 import WebSocket from 'ws';
-import type Face from '~s/Types/Face';
 import { type FrameFaces } from '~s/Types/Edit';
 import ImageSize from 'image-size';
 import {ProjectsRoot, WrapperHost} from '../Utils/Config';
+import { IdentifyFaces } from '../Utils/Face';
 
 
 export const GetList = (): string[] => {
@@ -104,12 +104,11 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
     for (let index = 0; index < images.length; index+=1) {
         const imageFile: Dirent = images[index];
-        const url = `http://${WrapperHost}/identify_faces?file=${encodeURIComponent(join(rootPath, imageFile.name))}`;
+        // const url = `http://${WrapperHost}/identify_faces?file=${encodeURIComponent()}`;
 
         try {
             // eslint-disable-next-line no-await-in-loop
-            const facesCount: number = await fetch(url)
-                .then(resp => resp.json() as Promise<Face[]>)
+            const facesCount: number = await IdentifyFaces(join(rootPath, imageFile.name))
                 .then(faces => {
                     const imagePath = join(rootPath, imageFile.name);
                     const dimensions = ImageSize(imagePath);

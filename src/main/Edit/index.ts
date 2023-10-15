@@ -6,9 +6,11 @@ import { copyFileSync, existsSync, mkdirSync } from "fs";
 import sharp from "sharp";
 import Face from "../../shared/Types/Face";
 import {ProjectsRoot} from '../Utils/Config';
-import Database, {type FrameType, type FrameFaceType, type FaceLibType} from '../Utils/Database';
+import Database from '../Utils/DB/Database';
+import {type FrameType, type FrameFaceType, type FaceLibType} from '../Utils/DB/Types';
 import { GetRectFromFace, Rect } from "../../shared/Face";
 import { clamp } from "../../shared/Util";
+import { ParsedFaceLibType, UpdateFrameFaceType } from "./Types";
 
 export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
@@ -102,10 +104,7 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
     // });
 }
 
-export interface ParsedFaceLibType extends Omit<FaceLibType, "value" | "hide"> {
-    face: Face,
-    hide: boolean,
-}
+
 
 export const GetAllFacesInFaceLib = (projectFolder: string): ParsedFaceLibType[] => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
@@ -223,4 +222,21 @@ export const SaveFaceLib = async (projectFolder: string, face: Face, file: strin
 
     return result;
     // return faceId;
+}
+
+
+export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrameFaceType[], callback: (cur: number) => void): void => {
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+
+    for (let index = 0; index < buckChanges.length; index+=1) {
+        const {id, ...changes} = buckChanges[index];
+        const keys = Object.keys(changes);
+        console.assert(keys.length > 0, 'changes should not be empty');
+        db.prepare(`UPDATE frameFace SET ${keys.map(key => `${key}=:${key}`).join(", ")} WHERE id=:id`).run({
+            ...changes,
+            id,
+        });
+        callback(index+1);
+    }
+
 }

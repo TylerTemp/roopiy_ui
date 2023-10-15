@@ -4,8 +4,9 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import ProjectType from '~s/Types/Project';
 import { FrameFaces } from '~s/Types/Edit';
 import Face from '~s/Types/Face';
+import { type UpdateFrameFaceType } from './Edit/Types';
 import Channel from './IpcChannel';
-import { ParsedFaceLibType } from './Edit';
+import { ParsedFaceLibType } from './Edit/Types';
 
 const electronHandler = {
     ipcRenderer: {
@@ -118,7 +119,22 @@ const electronHandler = {
                     projectFolder, face, file, alias);
                 console.assert(result !== null);
                 return result as Promise<ParsedFaceLibType>;
-            }
+            },
+            UpdateFrameFaces: (projectFolder: string, bulkChanges: UpdateFrameFaceType[], callback: (cur: number) => void): Promise<void> => {
+                const channelName = `${Channel.Edit.v.UpdateFrameFacesEvent}.${projectFolder}`;
+                console.log(`setup channel ${channelName}`);
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, cur: number) => {
+                    callback(cur);
+                });
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.UpdateFrameFaces,
+                    channelName, projectFolder, bulkChanges);
+                console.assert(result !== null);
+                return (result as Promise<void>)
+                    .then(() => {
+                        ipcRenderer.removeListener(channelName, () => {});
+                        // return r;
+                    });
+            },
         },
 
         Util: {

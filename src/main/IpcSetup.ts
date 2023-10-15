@@ -3,7 +3,8 @@ import ProjectType from '~s/Types/Project';
 import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
 import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig } from './Project';
-import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib } from './Edit';
+import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib, UpdateFrameFaces } from './Edit';
+import { UpdateFrameFaceType } from './Edit/Types';
 import { IdentifyFaces } from './Utils/Face';
 
 export default (ipcMain: IpcMain): void => {
@@ -70,6 +71,13 @@ export default (ipcMain: IpcMain): void => {
             {
                 const [_, projectFolder, face, file, alias] = args;
                 return SaveFaceLib(projectFolder as string, face as Face, file as string, alias as string);
+            }
+            case Channel.Edit.v.UpdateFrameFaces:
+            {
+                const [_, channelName, projectFolder, bulkChanges] = args;
+                return UpdateFrameFaces(projectFolder as string, bulkChanges as UpdateFrameFaceType[], (cur: number) => {
+                    event.sender.send(channelName, cur);
+                });
             }
             default:
                 throw new Error(`unknown channel ${Channel.Edit.k}:${args[0]} with args: ${args.slice(1)}`);

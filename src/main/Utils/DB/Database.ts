@@ -51,7 +51,7 @@ CREATE INDEX frameFilePath_frameFilePath ON frameFace (frameFilePath ASC);
 const GetOrCreateDatabase = (key: string, asFile: boolean): Sqlite.Database => {
     if(!dbMap[key]) {
         const options = {
-            // verbose: console.log,
+            verbose: console.log,
             fileMustExist: asFile
         };
         const dbTarget = asFile? key: ":memory:";
@@ -102,37 +102,6 @@ export const Close = (key: string) => {
 //     return Promise.reject(new Error(`db not found: ${key}`));
 // }
 
-
-export interface FrameType {
-    filePath: string,
-    width: number,
-    height: number,
-    swappedToPath: string | null,
-}
-
-
-export interface FrameFaceType {
-    id: number,
-    value: string,
-    groupId: number,
-    faceLibId: number | null,
-    frameFilePath: string,
-}
-
-
-// id INTEGER PRIMARY KEY AUTOINCREMENT,
-// value TEXT NOT NULL,
-// file TEXT NOT NULL,
-// alias TEXT NOT NULL,
-// hide BOOLEAN NOT NULL DEFAULT FALSE
-export interface FaceLibType {
-    id: number,
-    value: string,
-    file: string,
-    fullFile: string,
-    alias: string,
-    hide: number,
-}
 
 
 export default GetOrCreateDatabase;

@@ -141,7 +141,7 @@ const DrawCanvas = ({width, height, actualHeight, actualWidth, draws, lineAt}: D
 
 
 export default (props: Props) => {
-    const {height, actualHeight, actualWidth, draws} = props;
+    const {height} = props;
     // const { colorPlattes } = useTheme();
 
     const [nodeWidth, setNodeWidth] = useState<number>(-1);

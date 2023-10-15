@@ -23,6 +23,8 @@ export default {
             GetImageSize: 'GetImageSize',
             GetAllFacesInFaceLib: 'GetAllFacesInFaceLib',
             SaveFaceLib: 'SaveFaceLib',
+            UpdateFrameFaces: 'UpdateFrameFaces',
+            UpdateFrameFacesEvent: 'Edit.UpdateFrameFaces.Event',
         }
     },
     Util: {

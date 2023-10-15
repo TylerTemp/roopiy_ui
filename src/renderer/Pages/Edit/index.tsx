@@ -17,6 +17,7 @@ import FaceLib, { type FaceLibType } from "./FaceLib";
 import Style from "./index.scss";
 import ImageFullDraw from "./ImageFullDraw";
 import { FrameFacesEdited } from "./Face";
+import enqueueSnackbar from "~/Utils/enqueueSnackbar";
 
 
 const PickColor = (num: number, colors: CssColorMust[]): CssColorMust => colors[num % colors.length];
@@ -36,7 +37,11 @@ const RectCenter = ({top, bottom, left, right}: Rect): Vector2 => ({
 // }
 
 
-
+interface UpdateFrameFace {
+    id: FrameFace['id'],
+    groupId?: FrameFace['groupId'],
+    faceLibId?: FrameFace['faceLibId'],
+}
 
 interface EditPromiseResource {
     frameFaces: FrameFacesEdited[],
@@ -50,6 +55,12 @@ interface EditRendererProps extends RendererProps<EditPromiseResource> {
 
 const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
     const {frameFaces, faceLibFaces} = getResource();
+
+    const [{loading, loadingText, loadingProgress}, setLoading] = useState<TitleProgressLoadingProps>({
+        loading: false,
+        loadingText: null,
+        loadingProgress: -1,
+    });
 
     const [cachedFrameFaces, setCachedFrameFaces] = useState<FrameFacesEdited[]>(frameFaces);
     const [cacheFaceLibFaces, setCacheFaceLibFaces] = useState<FaceLibType[]>(faceLibFaces);
@@ -72,6 +83,39 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
 
     const { colorPlattes } = useTheme();
 
+    const OnSave = () => {
+        const bulkChanges = cachedFrameFaces
+            .filter(({edited}) => edited)
+            .map(({faces: toSaveFaces}) => toSaveFaces.map(({id, groupId, faceLibId}: FrameFace) => ({id, groupId, faceLibId})))
+            .flat();
+
+        if(bulkChanges.length === 0) {
+            enqueueSnackbar('No changes', 'info');
+            return;
+        }
+
+        setLoading({
+            loading: true,
+            loadingText: `Saving ${bulkChanges.length} frame faces...`,
+            loadingProgress: 0,
+        });
+
+        window.electron.ipcRenderer.Edit.UpdateFrameFaces(projectFolder, bulkChanges, (cur) => {
+            setLoading({
+                loading: true,
+                loadingText: `Saving ${cur}/${bulkChanges.length} frame faces...`,
+                loadingProgress: cur / bulkChanges.length,
+            });
+        })
+        .then(() => {
+            setCachedFrameFaces(prev => prev.map(each => ({...each, edited: false})));
+            setLoading(prev => ({...prev, loading: false}));
+            enqueueSnackbar('Saved', 'success');
+        })
+        .catch(({message}) => enqueueSnackbar(message, 'error'));
+
+    }
+
     return <>
         <FaceLib projectFolder={projectFolder as string} faces={faceLibFaces} onAddFace={newFace => setCacheFaceLibFaces(prev => [...prev, newFace])} />
 
@@ -82,7 +126,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
                 height={height}
                 drawInfos={faces.map((eachFace: FrameFace) => ({
                     rect: GetRectFromFace(eachFace.face),
-                    text: eachFace.faceLibId? `{index}|${eachFace.faceLibId}`: '{index}',
+                    text: eachFace.faceLibId? `${eachFace.groupId}|${eachFace.faceLibId}`: `${eachFace.groupId}`,
                     color: PickColor(eachFace.groupId, colorPlattes),
                 }))} />
             <Typography variant="caption" className={Style.textCenter}>{frameFile}[{faces.length}]</Typography>
@@ -103,6 +147,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
 
             <Slider
                 value={selectedRange}
+                valueLabelDisplay="auto"
                 step={1}
                 marks
                 min={0}
@@ -135,19 +180,32 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
                 onChange={(event: Event, newValue: number | number[]) => setSelectedFrameIndex(newValue as number)}
             />
 
+            <Box>
+                <Button onClick={() => setSelectedRange(([_, right]) => ([selectedFrameIndex, right]))}>{"<"}</Button>
+                <Button onClick={() => setSelectedRange(([left, _]) => ([left, selectedFrameIndex]))}>{">"}</Button>
+            </Box>
+
             <FrameSwapConfigs
-                // frameFaces={cachedFrameFaces}
+                frameFaces={cachedFrameFaces}
                 setFrameFaces={setCachedFrameFaces}
                 selectedRange={selectedRange}
                 selectedFrameIndex={selectedFrameIndex}
             />
 
             <Box>
-                <Button>Save</Button>
+                <Button onClick={() => OnSave()}>Save</Button>
                 <Button onClick={() => setCachedFrameFaces(frameFaces)}>Cancel</Button>
             </Box>
 
         </Stack>
+
+        {loading && <Box className={Style.loadingContainer}>
+            <TitleProgressLoading
+                loading={loading}
+                loadingText={loadingText}
+                loadingProgress={loadingProgress}
+            />
+        </Box>}
     </>;
 }
 

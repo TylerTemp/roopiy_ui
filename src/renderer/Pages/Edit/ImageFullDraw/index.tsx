@@ -3,9 +3,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import { Format } from '~/Utils/Str';
-import { Rect } from '~s/Face';
+import { Rect, RectCenterDirection } from '~s/Face';
 import { RectScale } from '../Face';
 import Style from './index.scss';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 
 
 interface DrawInfo {
@@ -20,9 +22,10 @@ interface NodeSizeInfoProps {
 }
 
 interface DrawCanvasProps extends NodeSizeInfoProps {
-    image: HTMLImageElement;
-    imageWidth: number,
-    drawInfos: DrawInfo[];
+    image: HTMLImageElement
+    imageWidth: number
+    drawInfos: DrawInfo[]
+    showDistance: boolean
 }
 
 const TextHeight = (ctx: CanvasRenderingContext2D, text: string): number => {
@@ -30,8 +33,20 @@ const TextHeight = (ctx: CanvasRenderingContext2D, text: string): number => {
     return textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
 }
 
+const GenerateCombinations = <T,>(arr: T[]): [T, T][] => {
+    const combinations: [T, T][] = [];
+    const n = arr.length;
 
-const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, drawInfos}: DrawCanvasProps) => {
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            combinations.push([arr[i], arr[j]]);
+        }
+    }
+
+    return combinations;
+}
+
+const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, showDistance, drawInfos}: DrawCanvasProps) => {
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -67,6 +82,34 @@ const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, drawInfos}: DrawC
             ctx.closePath();
         }
 
+        if(showDistance && drawInfos.length >= 2) {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'white';
+            ctx.fillStyle = 'white';
+            ctx.font = "20px serif";
+            GenerateCombinations(drawInfos).map(([{rect: rect1}, {rect: rect2}]) => {
+                const rectScale1: Rect = RectScale(rect1, nodeWidth / imageWidth);
+                const rectScale2: Rect = RectScale(rect2, nodeWidth / imageWidth);
+                const rect1CenterX = (rectScale1.left + rectScale1.right) / 2;
+                const rect1CenterY = (rectScale1.top + rectScale1.bottom) / 2;
+                const rect2CenterX = (rectScale2.left + rectScale2.right) / 2;
+                const rect2CenterY = (rectScale2.top + rectScale2.bottom) / 2;
+
+                const lineCenterX = (rect1CenterX + rect2CenterX) / 2;
+                const lineCenterY = (rect1CenterY + rect2CenterY) / 2;
+
+                const distance = Math.sqrt((rect1CenterX - rect2CenterX)**2 + Math.pow(rect1CenterY - rect2CenterY, 2));
+
+                ctx.beginPath();
+                ctx.moveTo(rect1CenterX, rect1CenterY);
+                ctx.lineTo(rect2CenterX, rect2CenterY);
+                ctx.fillText(distance.toFixed(2), lineCenterX, lineCenterY);
+                ctx.strokeText(distance.toFixed(2), lineCenterX, lineCenterY);
+                ctx.stroke();
+                ctx.closePath();
+            });
+        }
+
     }
 
     const handleCanvas = useCallback((canvasNode: HTMLCanvasElement) => {
@@ -80,7 +123,7 @@ const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, drawInfos}: DrawC
         if(canvasRef.current) {
             renderCanvasInfo(canvasRef.current);
         }
-    }, [image, drawInfos]);
+    }, [image, drawInfos, showDistance]);
 
     return <canvas className={Style.canvas} ref={handleCanvas} width={nodeWidth} height={nodeHeight} />
 }
@@ -100,6 +143,7 @@ export default ({src, width, height, drawInfos}: Props) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [nodeWidth, setNodeWidth] = useState<number>(-1);
     const [image, setImage] = useState<HTMLImageElement | null>(null);
+    const [showDistance, setShowDistance] = useState<boolean>(true);
 
     const handleDivWidth = useCallback((canvasNode: HTMLDivElement) => {
         if(canvasNode) {
@@ -122,13 +166,16 @@ export default ({src, width, height, drawInfos}: Props) => {
 
     const canvasResizedHeight = nodeWidth * height / width;
 
-    return <Box className={Style.container} ref={handleDivWidth} height={nodeWidth > 0 ? canvasResizedHeight: undefined}>
-        {nodeWidth > 0 && image !== null && <DrawCanvas nodeWidth={nodeWidth} nodeHeight={canvasResizedHeight} image={image} imageWidth={width} drawInfos={drawInfos} />}
-        {loading && <Box className={Style.loadingContainer}>
-            <CircularProgress />
-            <Typography variant='caption'>
-                {src}
-            </Typography>
-        </Box>}
-    </Box>
+    return <>
+        <Box className={Style.container} ref={handleDivWidth} height={nodeWidth > 0 ? canvasResizedHeight: undefined}>
+            {nodeWidth > 0 && image !== null && <DrawCanvas showDistance={showDistance} nodeWidth={nodeWidth} nodeHeight={canvasResizedHeight} image={image} imageWidth={width} drawInfos={drawInfos} />}
+            {loading && <Box className={Style.loadingContainer}>
+                <CircularProgress />
+                <Typography variant='caption'>
+                    {src}
+                </Typography>
+            </Box>}
+        </Box>
+        <FormControlLabel control={<Checkbox checked={showDistance} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setShowDistance(event.target.checked)} />} label="Show Distance" />
+    </>
 }

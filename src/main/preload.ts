@@ -5,7 +5,6 @@ import ProjectType from '~s/Types/Project';
 import { FrameFaces } from '~s/Types/Edit';
 import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
-import { FaceLibType } from './Utils/Database';
 import { ParsedFaceLibType } from './Edit';
 
 const electronHandler = {

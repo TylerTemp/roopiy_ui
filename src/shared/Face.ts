@@ -1,5 +1,5 @@
 import type Face from '~s/Types/Face';
-import { FrameFace, FrameFaces } from './Types/Edit';
+import { FrameFace } from './Types/Edit';
 
 
 export interface Rect {

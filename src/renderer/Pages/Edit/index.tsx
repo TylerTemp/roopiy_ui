@@ -1,22 +1,22 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import RetryErrorSuspense, { RendererProps } from "~/Components/RetryErrorSuspense";
-import { FrameFace, FrameFaces } from "~s/Types/Edit";
+import { FrameFace } from "~s/Types/Edit";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Slider from '@mui/material/Slider';
-import ImageFullDraw from "./ImageFullDraw";
 import { GetRectFromFace, type Rect } from "~s/Face";
-import Style from "./index.scss";
-import FaceLib, { type FaceLibType } from "./FaceLib";
-import Face from "~s/Types/Face";
-import GroupDrawer from "./GroupDrawer";
 import useTheme from "@mui/material/styles/useTheme";
 import { CssColorMust } from "~/Components/Theme/Basic";
 import Box from "@mui/material/Box";
 import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
-import FrameSwapConfigs from "./FrameSwapConfigs";
 import Button from "@mui/material/Button";
+import GroupDrawer from "./GroupDrawer";
+import FrameSwapConfigs from "./FrameSwapConfigs";
+import FaceLib, { type FaceLibType } from "./FaceLib";
+import Style from "./index.scss";
+import ImageFullDraw from "./ImageFullDraw";
+import { FrameFacesEdited } from "./Face";
 
 
 const PickColor = (num: number, colors: CssColorMust[]): CssColorMust => colors[num % colors.length];
@@ -36,10 +36,7 @@ const RectCenter = ({top, bottom, left, right}: Rect): Vector2 => ({
 // }
 
 
-export interface FrameFacesEdited extends FrameFaces {
-    edited: boolean;
-    // faces: FrameFaceEdited[];
-}
+
 
 interface EditPromiseResource {
     frameFaces: FrameFacesEdited[],

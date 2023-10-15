@@ -1,11 +1,10 @@
 import type { IpcMain } from 'electron';
 import ProjectType from '~s/Types/Project';
+import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
 import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig } from './Project';
 import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib } from './Edit';
 import { IdentifyFaces } from './Utils/Face';
-import Face from '~s/Types/Face';
-import { FrameFaces } from '~s/Types/Edit';
 
 export default (ipcMain: IpcMain): void => {
 

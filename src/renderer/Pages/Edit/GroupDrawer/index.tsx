@@ -1,9 +1,8 @@
 import Box from "@mui/material/Box";
-import useTheme from "@mui/material/styles/useTheme";
 import { useCallback, useState } from "react";
-import Style from './index.scss';
 import { CssColorMust } from "~/Components/Theme/Basic";
 import { clamp } from "~s/Util";
+import Style from './index.scss';
 
 
 const PickColor = (num: number, colors: React.CSSProperties['color'][]): React.CSSProperties['color'] => colors[num % colors.length];

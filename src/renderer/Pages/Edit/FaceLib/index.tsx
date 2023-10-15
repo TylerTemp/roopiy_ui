@@ -1,12 +1,11 @@
 import { Fragment, useState } from "react";
-import Add, { type FaceLibBaseType, type FaceLibType } from "./Add"
-export { type FaceLibType } from "./Add"
 // export type FaceLibType = FaceLibType;
-import enqueueSnackbar from "~/Utils/enqueueSnackbar";
 import Chip from "@mui/material/Chip";
-import Face from "~s/Types/Face";
 import Avatar from "@mui/material/Avatar";
+import Add, { type FaceLibBaseType, type FaceLibType } from "./Add"
 import ViewFullScreen from "./ViewFullScreen";
+
+export { type FaceLibType } from "./Add"
 
 
 const RenderFaceChip = ({projectFolder, face: {file, fullFile, alias}}: {projectFolder: string, face: FaceLibType}) => {

@@ -13,13 +13,10 @@ import usePromiseCache from "~/Utils/usePromiseCache";
 import type ProjectType from '~s/Types/Project';
 import type { ProjectEdit } from '~s/Types/Project';
 import Collapse from "@mui/material/Collapse";
-import CircularProgress from '@mui/material/CircularProgress';
-import LinearProgress from '@mui/material/LinearProgress';
-import useTheme from "@mui/material/styles/useTheme";
 import { useNavigate } from "react-router-dom";
+import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
 import Style from './index.scss'
 import FileTextField from './FileTextField';
-import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
 
 
 const ParseFFmpegTime = (timeStr: string): number => {

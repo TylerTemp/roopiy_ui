@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, type Dirent } from 'fs';
+import { readdirSync, existsSync, mkdirSync, type Dirent } from 'fs';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 import type ProjectType from '~s/Types/Project';

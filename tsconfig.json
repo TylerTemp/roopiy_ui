@@ -18,6 +18,7 @@
         "~/*": ["./renderer/*"],
         "~s/*": ["./shared/*"],
         "~m/*": ["./main/*"],
+        "*": ["node_modules/*", "release/app/node_modules/*"]
     },
   },
   "exclude": ["test", "release/build", "release/app/dist", ".erb/dll"]

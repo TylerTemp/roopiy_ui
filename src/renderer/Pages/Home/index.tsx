@@ -19,6 +19,7 @@ import useTheme from "@mui/material/styles/useTheme";
 import { useNavigate } from "react-router-dom";
 import Style from './index.scss'
 import FileTextField from './FileTextField';
+import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
 
 
 const ParseFFmpegTime = (timeStr: string): number => {
@@ -69,18 +70,11 @@ const ProjecetToEdit = ({referenceVideoFrom, referenceVideoDuration, referenceVi
 });
 
 
-interface Loading {
-    loading: boolean;
-    loadingText: string | null;
-    loadingProgress: number;
-}
-
-
 export default () => {
 
     const navigate = useNavigate();
 
-    const [{loading, loadingText, loadingProgress}, setLoading] = useState<Loading>({
+    const [{loading, loadingText, loadingProgress}, setLoading] = useState<TitleProgressLoadingProps>({
         loading: false,
         loadingText: null,
         loadingProgress: -1,
@@ -194,7 +188,7 @@ export default () => {
     };
 
     // console.log(isNewProject);
-    const theme = useTheme();
+    // const theme = useTheme();
 
     return <Box className={Style.overlayContainer}>
                 <form onSubmit={evt => {
@@ -305,12 +299,17 @@ export default () => {
                     </Stack>
                 </form>
 
-                <Box className={Style.overlay} sx={{display: loading? undefined: 'none', background: theme.dim}}>
+                {/* <Box className={Style.overlay} sx={{display: loading? undefined: 'none', background: theme.dim}}>
                     {loadingText && <Typography variant="caption">{loadingText}</Typography>}
                     {loadingProgress < 0
                         ? <CircularProgress />
-                        : <LinearProgress value={loadingProgress * 100} className={Style.progress}/>}
-                </Box>
+                        : <LinearProgress variant="determinate" value={loadingProgress * 100} className={Style.progress}/>}
+                </Box> */}
+                <TitleProgressLoading
+                    loading={loading}
+                    loadingText={loadingText}
+                    loadingProgress={loadingProgress}
+                />
 
             </Box>;
 }

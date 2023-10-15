@@ -5,6 +5,8 @@ import ProjectType from '~s/Types/Project';
 import { FrameFaces } from '~s/Types/Edit';
 import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
+import { FaceLibType } from './Utils/Database';
+import { ParsedFaceLibType } from './Edit';
 
 const electronHandler = {
     ipcRenderer: {
@@ -79,20 +81,44 @@ const electronHandler = {
                     .then(() => ipcRenderer.removeListener(channelName, callback)) as Promise<void>;
             },
 
-            SaveConfig: (projectFolder: string, config: ProjectType) => ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.SaveConfig, projectFolder, config) as Promise<void>,
+            SaveConfig: (projectFolder: string, config: ProjectType): Promise<void> => {
+                const result = ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.SaveConfig, projectFolder, config);
+                console.assert(result !== null);
+                return result as Promise<void>;
+            },
 
             // CreateConfig: (name: string, config: ProjectType) => ipcRenderer.invoke('project', 'CreateConfig', name, JSON.stringify(config)) as Promise<void>,
         },
         Edit: {
-            GetProjectFrameFaces: (projectFolder: string): Promise<FrameFaces[]> => {
-                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GetProjectFrameFaces, projectFolder);
+            GetProjectFrameFaces: (projectFolder: string, callback: (cur: number, total: number) => void): Promise<FrameFaces[]> => {
+                const channelName = `${Channel.Edit.v.GetProjectFrameFacesEvent}.${projectFolder}`;
+                console.log(`setup channel ${channelName}`);
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, cur: number, total: number) => {
+                    callback(cur, total);
+                });
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GetProjectFrameFaces, channelName, projectFolder);
                 console.assert(result !== null);
-                return result as Promise<FrameFaces[]>;
+                return (result as Promise<FrameFaces[]>)
+                    .then(r => {
+                        ipcRenderer.removeListener(channelName, callback);
+                        return r;
+                    });
             },
             GetImageSize: (imagePath: string): Promise<{width: number, height: number}> => {
                 const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GetImageSize, imagePath);
                 console.assert(result !== null);
                 return result as Promise<{width: number, height: number}>;
+            },
+            GetAllFacesInFaceLib: (projectFolder: string): Promise<ParsedFaceLibType[]> => {
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GetAllFacesInFaceLib, projectFolder);
+                console.assert(result !== null);
+                return result as Promise<ParsedFaceLibType[]>;
+            },
+            SaveFaceLib: (projectFolder: string, face: Face, file: string, alias: string): Promise<ParsedFaceLibType> => {
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.SaveFaceLib,
+                    projectFolder, face, file, alias);
+                console.assert(result !== null);
+                return result as Promise<ParsedFaceLibType>;
             }
         },
 

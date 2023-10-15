@@ -1,4 +1,4 @@
-import { blue } from "@mui/material/colors";
+import { blue, red, purple, teal, lime, orange } from "@mui/material/colors";
 import { createTheme } from "./Basic";
 
 export default createTheme({
@@ -11,7 +11,10 @@ export default createTheme({
     palette: {
         mode: 'dark'
     },
-    dim: 'rgba(255, 255, 255, 0.2)',
+    dim: 'rgb(0 0 0 / 76%)',
+    colorPlattes: [
+        blue[500], red[500], purple[500], teal[500], lime[500], orange[500]
+    ],
     // status: {
     //     themeBubble: grey[300],
     // },

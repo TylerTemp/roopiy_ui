@@ -25,18 +25,35 @@ CREATE TABLE frame (
     PRIMARY KEY(filePath)
 );
 
+CREATE TABLE faceLib(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    value TEXT NOT NULL,
+    file TEXT,
+    fullFile TEXT,
+    alias TEXT NOT NULL,
+    hide INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE frameFace(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     value TEXT NOT NULL,
+    groupId INTEGER NOT NULL,
     frameFilePath TEXT NOT NULL,
-    FOREIGN KEY (frameFilePath) REFERENCES frame (filePath)
+    faceLibId INTEGER,
+    FOREIGN KEY (frameFilePath) REFERENCES frame (filePath),
+    FOREIGN KEY (faceLibId) REFERENCES faceLib (id)
 );
+
+CREATE INDEX frameFilePath_frameFilePath ON frameFace (frameFilePath ASC);
 `;
 
 
 const GetOrCreateDatabase = (key: string, asFile: boolean): Sqlite.Database => {
     if(!dbMap[key]) {
-        const options = { verbose: console.log, fileMustExist: asFile };
+        const options = {
+            // verbose: console.log,
+            fileMustExist: asFile
+        };
         const dbTarget = asFile? key: ":memory:";
         console.log(`open db ${dbTarget}(${key})`, options);
         if(asFile) {
@@ -49,6 +66,8 @@ const GetOrCreateDatabase = (key: string, asFile: boolean): Sqlite.Database => {
         const db = new Sqlite(dbTarget, options);
         if(!asFile) {
             console.log(`console.log(db.serialize());`)
+
+            db.serialize();
 
             console.log(`init tables`);
             db.exec(CreateTables());
@@ -95,7 +114,24 @@ export interface FrameType {
 export interface FrameFaceType {
     id: number,
     value: string,
+    groupId: number,
+    faceLibId: number | null,
     frameFilePath: string,
+}
+
+
+// id INTEGER PRIMARY KEY AUTOINCREMENT,
+// value TEXT NOT NULL,
+// file TEXT NOT NULL,
+// alias TEXT NOT NULL,
+// hide BOOLEAN NOT NULL DEFAULT FALSE
+export interface FaceLibType {
+    id: number,
+    value: string,
+    file: string,
+    fullFile: string,
+    alias: string,
+    hide: number,
 }
 
 

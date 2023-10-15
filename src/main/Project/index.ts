@@ -124,13 +124,13 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
         const frameFile = `frames/${imageFile.name}`;
         const frameInfo: FrameType = {
             filePath: frameFile,
-            width: Math.round(dimensions.width as number),
-            height: Math.round(dimensions.height as number),
+            width: dimensions.width as number,
+            height:dimensions.height as number,
             swappedToPath: null,
         };
 
         db
-            .prepare('INSERT INTO frame VALUES (:filePath, :width, :height, :swappedToPath)')
+            .prepare('INSERT INTO frame(filePath, width, height, swappedToPath) VALUES (:filePath, :width, :height, :swappedToPath)')
             .run(frameInfo);
 
         try {
@@ -138,22 +138,13 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
             const facesCount: number = await IdentifyFaces(join(rootPath, imageFile.name))
                 .then(faces => {
 
-                    // const frameFaces: FrameFaces = {
-                    //     frameFile: imageFile.name,
-                    //     faces,
-                    //     width: dimensions.width as number,
-                    //     height: dimensions.height as number,
-                    // };
-
-                    // const filePath = join(rootPath, `${imageFile.name}.json`);
-                    // console.log(`writing config to ${filePath}`);
-                    // writeFileSync(filePath, JSON.stringify(frameFaces, null, 4));
-
-                    const stmt = db.prepare('INSERT INTO frameFace VALUES (:value, :frameFilePath)');
-                    faces.forEach(face => {
+                    const stmt = db.prepare('INSERT INTO frameFace(value, frameFilePath, groupId, faceLibId) VALUES (:value, :frameFilePath, :groupId, :faceLibId)');
+                    faces.forEach((face, faceIndex) => {
                         const frameFace: Omit<FrameFaceType, "id"> = {
                             value: JSON.stringify(face),
                             frameFilePath: frameFile,
+                            groupId: faceIndex,
+                            faceLibId: null,
                         };
                         stmt.run(frameFace);
                     });
@@ -170,7 +161,7 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 }
 
 
-export const SaveConfig = (projectFolder: string, config: ProjectType): void => {
+export const SaveConfig = (projectFolder: string, config: ProjectType): Promise<void> => {
     // const fileDir = join(ProjectsRoot, projectFolder);
     // if(!existsSync(fileDir)) {
     //     console.log(`create dir ${fileDir}`);
@@ -190,14 +181,14 @@ export const SaveConfig = (projectFolder: string, config: ProjectType): void => 
     console.log(`writing config to ${filePath}`, config);
     // console.log(fileData);
     // writeFileSync(filePath, fileData);
-    db
+    return db
         .backup(filePath)
         .then(() => {
             console.log(`backup finished: ${filePath}`);
             Close(filePath);
             console.log(`db closed: ${filePath}`);
-            return Database(filePath, true);
+            Database(filePath, true);
             // return;
-        })
-        .catch(console.error);
+        });
+        // .catch(console.error);
 }

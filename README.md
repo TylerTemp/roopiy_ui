@@ -19,11 +19,12 @@
 
 *   id: primary, int
 *   value: string(json)
+*   faceLibId: faceLib.id, int
 *   frameFilePath: frame.filePath
 
 **faceLib**
 
-*   id: primary
+*   id: primary, int
 *   value: string(json)
 *   file: string, `face_lib/${filename}`
 *   alias: string

@@ -19,7 +19,10 @@ export default {
         k: 'Edit',
         v: {
             GetProjectFrameFaces: 'GetProjectFrameFaces',
+            GetProjectFrameFacesEvent: 'Edit.GetProjectFrameFaces.Event',
             GetImageSize: 'GetImageSize',
+            GetAllFacesInFaceLib: 'GetAllFacesInFaceLib',
+            SaveFaceLib: 'SaveFaceLib',
         }
     },
     Util: {

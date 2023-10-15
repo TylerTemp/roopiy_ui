@@ -2,8 +2,10 @@ import type { IpcMain } from 'electron';
 import ProjectType from '~s/Types/Project';
 import Channel from './IpcChannel';
 import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig } from './Project';
-import { GetProjectFrameFaces, GetImageSize } from './Edit';
+import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib } from './Edit';
 import { IdentifyFaces } from './Utils/Face';
+import Face from '~s/Types/Face';
+import { FrameFaces } from '~s/Types/Edit';
 
 export default (ipcMain: IpcMain): void => {
 
@@ -49,13 +51,26 @@ export default (ipcMain: IpcMain): void => {
         switch (args[0]) {
             case Channel.Edit.v.GetProjectFrameFaces:
             {
-                const [_, projectFolder] = args;
-                return GetProjectFrameFaces(projectFolder as string);
+                const [_, channelName, projectFolder] = args;
+                return GetProjectFrameFaces(projectFolder as string,
+                    (cur: number, total: number) => {
+                        event.sender.send(channelName, cur, total);
+                    });
             }
             case Channel.Edit.v.GetImageSize:
             {
                 const [_, imagePath] = args;
                 return GetImageSize(imagePath as string);
+            }
+            case Channel.Edit.v.GetAllFacesInFaceLib:
+            {
+                const [_, projectFolder] = args;
+                return GetAllFacesInFaceLib(projectFolder as string);
+            }
+            case Channel.Edit.v.SaveFaceLib:
+            {
+                const [_, projectFolder, face, file, alias] = args;
+                return SaveFaceLib(projectFolder as string, face as Face, file as string, alias as string);
             }
             default:
                 throw new Error(`unknown channel ${Channel.Edit.k}:${args[0]} with args: ${args.slice(1)}`);

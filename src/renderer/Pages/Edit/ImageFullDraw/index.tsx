@@ -3,7 +3,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import { Format } from '~/Utils/Str';
-import { Rect, RectScale } from '../Face';
+import { Rect } from '~s/Face';
+import { RectScale } from '../Face';
 import Style from './index.scss';
 
 
@@ -59,7 +60,7 @@ const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, drawInfos}: DrawC
 
             if(text !== null) {
                 const drawText: string = Format(text, {'index': drawIndex.toString()});
-                console.log(`draw`, drawText, color);
+                // console.log(`draw`, drawText, color);
                 ctx.fillText(drawText, rectScale.left, rectScale.bottom + ctx.lineWidth + TextHeight(ctx, drawText));
             }
             ctx.stroke();

@@ -1,8 +1,6 @@
 interface ProjectBase {
     referenceVideoFile: string,
-
     referenceVideoSlice: boolean,
-
     sourceVideoFile: string,
 }
 

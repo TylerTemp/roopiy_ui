@@ -15,8 +15,11 @@ import { useEffect, useRef, useState } from "react";
 // }
 
 export type FileTextFieldProps = Pick<TextFieldProps, 'onChange' | 'inputRef'> & {
+    // eslint-disable-next-line react/require-default-props
     defaultValue?: string,
+    // eslint-disable-next-line react/require-default-props
     value?: string,
+    // eslint-disable-next-line react/require-default-props
     readOnly?: boolean,
     // onChange?: (value: string) => void,
     // inputRef?: React.Ref<HTMLInputElement>,
@@ -26,10 +29,10 @@ export default ({defaultValue, value, onChange, inputRef, readOnly=false}: FileT
 
     const [curValue, setCurValue] = useState<string>(value || defaultValue || '');
 
-    console.log('FileTextField', curValue, value);
+    // console.log('FileTextField', curValue, value);
 
     useEffect(() => {
-        if(value !== undefined && value != curValue) {
+        if(value !== undefined && value !== curValue) {
             setCurValue(value);}
     }, [value]);
 
@@ -59,9 +62,12 @@ export default ({defaultValue, value, onChange, inputRef, readOnly=false}: FileT
                     </IconButton>
                     <input ref={inputFileRef} type="file" accept="video/*" style={{display: 'none'}} onChange={evt => {
                         // console.log(evt);
-                        const {path} = inputFileRef.current?.files?.[0] as any;
+                        const {path=''} = inputFileRef.current?.files?.[0] as any || {};
                         console.log(path);
                         setCurValue(path);
+                        // if(path !== '') {
+
+                        // }
                         onChange?.({...evt, target: {...evt.target, value: path}});
                         // videoFileInputRef.current!.value = path;
                         // videoFileInputRef.current!.dispatchEvent(new Event('change'));

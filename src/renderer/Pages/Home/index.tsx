@@ -33,20 +33,20 @@ const ParseFFmpegTime = (timeStr: string): number => {
 
     if (parts.length === 3) {
         [hours, minutes, seconds] = parts;
-        totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds);
+        totalSeconds = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
     } else if (parts.length === 2) {
         [minutes, seconds] = parts;
-        totalSeconds = parseInt(minutes) * 60 + parseInt(seconds);
+        totalSeconds = parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
     } else if (parts.length === 1) {
-        totalSeconds = parseInt(parts[0]);
+        totalSeconds = parseInt(parts[0], 10);
         console.log(`parsed: ${parts} -> ${totalSeconds}${floatPart}`);
     } else {
         throw new Error(`Invalid time string: ${timeStr}`);
     }
 
-    console.assert(!isNaN(totalSeconds), `totalSeconds is NaN: ${timeStr}`);
+    console.assert(!Number.isNaN(totalSeconds), `totalSeconds is NaN: ${timeStr}`);
     const floatValue: number = (floatPart ? parseFloat(`0.${floatPart}`) : 0);
-    console.assert(!isNaN(floatValue), `floatValue is NaN: ${floatPart}`);
+    console.assert(!Number.isNaN(floatValue), `floatValue is NaN: ${floatPart}`);
 
     return totalSeconds + floatValue;
 }
@@ -54,7 +54,7 @@ const ParseFFmpegTime = (timeStr: string): number => {
 
 const emptyProject: ProjectEdit = {
     referenceVideoFile: '',
-    referenceVideoSlice: true,
+    referenceVideoSlice: false,
     referenceVideoFrom: '0',
     referenceVideoTo: '',
     sourceVideoFile: 'source.mp4',
@@ -111,13 +111,14 @@ export default () => {
                 .then(ProjecetToEdit)
         )
         .then(result => {
-            if(projectFolder === projectFolder) {
-                setProjectEdit(result);
-            }
+            console.log(`getPromise ${projectFolder} result`, result);
+            setProjectEdit(result);
         });
     }
 
-    // const inputFileRef = useRef<HTMLInputElement>(null);
+    const NavigateToProject = () => {
+        navigate(`/edit/${selectedProjectFolder}`);
+    }
 
     const CreateProject = () => {
         const {referenceVideoSlice, referenceVideoFrom, referenceVideoTo, ...left} = projectEdit;
@@ -144,7 +145,7 @@ export default () => {
         }
 
         setLoading({loading: true, loadingText: 'Extracting video', loadingProgress: -1});
-        return window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
+        window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
             .then((seconds: number) => {
                 console.log(seconds);
                 if(referenceVideoSlice && referenceVideoDuration! <= 0) {
@@ -191,10 +192,6 @@ export default () => {
                 enqueueSnackbar(err.message, 'error');
             });
     };
-
-    const NavigateToProject = () => {
-        navigate(`/edit/${selectedProjectFolder}`);
-    }
 
     // console.log(isNewProject);
     const theme = useTheme();

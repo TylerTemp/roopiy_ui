@@ -22,6 +22,9 @@ module.exports = {
     "import/prefer-default-export": "off",
     "react/jsx-no-useless-fragment": "off",
     "react/jsx-props-no-spreading": "off",
+    "promise/catch-or-return": "off",
+    "promise/always-return": "off",
+    "react-hooks/exhaustive-deps": "off",
   },
   parserOptions: {
     ecmaVersion: 2022,

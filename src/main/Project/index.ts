@@ -4,15 +4,16 @@ import { join } from 'path';
 import type ProjectType from '~s/Types/Project';
 import type ApiPrepareProject from '~m/Project/ApiPrepareProject';
 import WebSocket from 'ws';
-import { type FrameFaces } from '~s/Types/Edit';
+// import { type FrameFaces } from '~s/Types/Edit';
 import ImageSize from 'image-size';
 import {ProjectsRoot, WrapperHost} from '../Utils/Config';
 import { IdentifyFaces } from '../Utils/Face';
+import Database, { Close, type FrameType, type FrameFaceType } from '../Utils/Database';
 
 
 export const GetList = (): string[] => {
     const result = readdirSync(ProjectsRoot, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory() && existsSync(join(ProjectsRoot, dirent.name, 'config.json')))
+        .filter(dirent => dirent.isDirectory() && existsSync(join(ProjectsRoot, dirent.name, 'config.db')))
         .map(dirent => dirent.name);
 
     console.log(`project list:`, result);
@@ -21,12 +22,19 @@ export const GetList = (): string[] => {
 
 
 export const GetConfig = (projectFolder: string): ProjectType => {
-    const filePath = join(ProjectsRoot, projectFolder, 'config.json');
+    const filePath = join(ProjectsRoot, projectFolder, 'config.db');
     console.log(`reading config`, filePath);
-    const fileData = readFileSync(filePath);
-    const result: ProjectType = JSON.parse(fileData.toString());
-    console.log(`read config`, filePath, result);
-    return result;
+    const db = Database(filePath, true);
+    const results = db.prepare('SELECT * FROM config').all() as {key: keyof ProjectType, value: string}[];
+    const projectAcc: Partial<ProjectType> = {};
+    results.forEach(({key, value: jsonStr}) => {
+        projectAcc[key] = JSON.parse(jsonStr);
+    });
+
+    const project: ProjectType = projectAcc as ProjectType;
+
+    console.log(`read config`, filePath, project);
+    return project;
 }
 
 export const GetVideoSeconds = (videoFile: string): number => {
@@ -48,6 +56,7 @@ export const GetVideoSeconds = (videoFile: string): number => {
 
 
 export const ExtractVideo = (projectFolder: string, config: ProjectType, callback: (count:number) => void): Promise<void> => {
+    const _db = Database(join(ProjectsRoot, projectFolder, 'config.db'), false);
     const fileDir = join(ProjectsRoot, projectFolder);
     if(!existsSync(fileDir)) {
         console.log(`create dir ${fileDir}`);
@@ -102,29 +111,52 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
     const images = readdirSync(rootPath, { withFileTypes: true })
         .filter(dirent => !dirent.isDirectory() && dirent.name.endsWith('.png'));
 
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), false);
+
     for (let index = 0; index < images.length; index+=1) {
         const imageFile: Dirent = images[index];
+        const imagePath = join(rootPath, imageFile.name);
+        const dimensions = ImageSize(imagePath);
+        console.assert(dimensions.width, `width is undefined for ${imagePath}`);
+        console.assert(dimensions.height, `height is undefined for ${imagePath}`);
+
         // const url = `http://${WrapperHost}/identify_faces?file=${encodeURIComponent()}`;
+        const frameFile = `frames/${imageFile.name}`;
+        const frameInfo: FrameType = {
+            filePath: frameFile,
+            width: Math.round(dimensions.width as number),
+            height: Math.round(dimensions.height as number),
+            swappedToPath: null,
+        };
+
+        db
+            .prepare('INSERT INTO frame VALUES (:filePath, :width, :height, :swappedToPath)')
+            .run(frameInfo);
 
         try {
             // eslint-disable-next-line no-await-in-loop
             const facesCount: number = await IdentifyFaces(join(rootPath, imageFile.name))
                 .then(faces => {
-                    const imagePath = join(rootPath, imageFile.name);
-                    const dimensions = ImageSize(imagePath);
-                    console.assert(dimensions.width, `width is undefined for ${imagePath}`);
-                    console.assert(dimensions.height, `height is undefined for ${imagePath}`);
 
-                    const frameFaces: FrameFaces = {
-                        frameFile: imageFile.name,
-                        faces,
-                        width: dimensions.width as number,
-                        height: dimensions.height as number,
-                    };
+                    // const frameFaces: FrameFaces = {
+                    //     frameFile: imageFile.name,
+                    //     faces,
+                    //     width: dimensions.width as number,
+                    //     height: dimensions.height as number,
+                    // };
 
-                    const filePath = join(rootPath, `${imageFile.name}.json`);
-                    console.log(`writing config to ${filePath}`);
-                    writeFileSync(filePath, JSON.stringify(frameFaces, null, 4));
+                    // const filePath = join(rootPath, `${imageFile.name}.json`);
+                    // console.log(`writing config to ${filePath}`);
+                    // writeFileSync(filePath, JSON.stringify(frameFaces, null, 4));
+
+                    const stmt = db.prepare('INSERT INTO frameFace VALUES (:value, :frameFilePath)');
+                    faces.forEach(face => {
+                        const frameFace: Omit<FrameFaceType, "id"> = {
+                            value: JSON.stringify(face),
+                            frameFilePath: frameFile,
+                        };
+                        stmt.run(frameFace);
+                    });
                     return faces.length;
                 });
 
@@ -139,15 +171,33 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
 
 export const SaveConfig = (projectFolder: string, config: ProjectType): void => {
-    const fileDir = join(ProjectsRoot, projectFolder);
-    if(!existsSync(fileDir)) {
-        console.log(`create dir ${fileDir}`);
-        mkdirSync(fileDir, { recursive: true});
+    // const fileDir = join(ProjectsRoot, projectFolder);
+    // if(!existsSync(fileDir)) {
+    //     console.log(`create dir ${fileDir}`);
+    //     mkdirSync(fileDir, { recursive: true});
+    // }
+
+    const filePath = join(ProjectsRoot, projectFolder, 'config.db');
+
+    const db = Database(filePath, false);
+    const stmt = db.prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)');
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [key, value] of Object.entries(config)) {
+        stmt.run(key, JSON.stringify(value));
     }
 
-    const filePath = join(fileDir, 'config.json');
-    const fileData = JSON.stringify(config, null, 4);
+    // const fileData = JSON.stringify(config, null, 4);
     console.log(`writing config to ${filePath}`, config);
     // console.log(fileData);
-    writeFileSync(filePath, fileData);
+    // writeFileSync(filePath, fileData);
+    db
+        .backup(filePath)
+        .then(() => {
+            console.log(`backup finished: ${filePath}`);
+            Close(filePath);
+            console.log(`db closed: ${filePath}`);
+            return Database(filePath, true);
+            // return;
+        })
+        .catch(console.error);
 }

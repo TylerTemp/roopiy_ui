@@ -133,4 +133,4 @@ def identify_faces():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    app.run(port=8787, debug=True)
+    app.run(port=8787, debug=False)

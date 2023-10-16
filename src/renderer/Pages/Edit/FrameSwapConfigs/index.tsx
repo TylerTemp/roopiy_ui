@@ -5,8 +5,8 @@ import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { FacesDistances } from "~s/Face";
-import { FrameFacesEdited } from "../Face";
 import { FrameFace } from "~s/Types/Edit";
+import { FrameFacesEdited } from "../Face";
 // import { FrameFacesEdited } from "..";
 
 interface Props {

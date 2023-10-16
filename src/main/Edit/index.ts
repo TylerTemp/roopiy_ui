@@ -16,6 +16,34 @@ export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
 // type FrameFacesNoFaces = Omit<FrameFaces, "faces">;
 
+const PadTo2Digits = (num: number): string => {
+    return num.toString().padStart(2, '0');
+  }
+
+const ConvertMsToTime = (milliseconds: number):string => {
+    let seconds = Math.floor(milliseconds / 1000);
+    let minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    seconds %= 60;
+    minutes %= 60;
+
+    // 👇️ If you want to roll hours over, e.g. 00 to 24
+    // 👇️ uncomment the line below
+    // uncommenting next line gets you `00:00:00` instead of `24:00:00`
+    // or `12:15:31` instead of `36:15:31`, etc.
+    // 👇️ (roll hours over)
+    // hours = hours % 24;
+
+    return `${PadTo2Digits(hours)}:${PadTo2Digits(minutes)}:${PadTo2Digits(
+      seconds,
+    )}`;
+  }
+
+interface FrameNestedQueryType extends FrameType {
+    frameFaces: string,
+}
+
 export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: number, total: number) => void): FrameFaces[] => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
     // id: number,
@@ -31,7 +59,8 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
     const limit = 100;
     const allResults: FrameFaces[] = []
     while(true) {
-        callback(offset, total);
+        // callback(offset, total);
+        const startTime = new Date();
         console.log(`query all frames`, offset, limit);
         const frames = db.prepare(`
             SELECT
@@ -50,23 +79,31 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
             FROM frame
             LIMIT ${limit}
             OFFSET ${offset}
-        `).all() as FrameType[];
+        `).all() as FrameNestedQueryType[];
 
-        console.log(`query all frames finished`, frames.length);
+        const usedTime = (new Date()).getTime() - startTime.getTime();
+
+        console.log(`query all frames finished`, ConvertMsToTime(usedTime), frames.length);
         if(frames.length === 0) {
             return allResults;
         }
 
         // const frames = db.prepare('SELECT * FROM frame').all() as FrameType[];
-        const results: FrameFaces[] = frames.map((frame: FrameType): FrameFaces => {
+        const results: FrameFaces[] = frames.map(({frameFaces: frameFacesStr, ...FrameTypeArgs}): FrameFaces => {
+            const frame: FrameType = FrameTypeArgs as FrameType;
 
-            const dbFaces = db.prepare('SELECT * FROM frameFace WHERE frameFilePath = ?').all(frame.filePath) as FrameFaceType[];
-            const frameFaces: FrameFace[] = dbFaces.map(
-                ({value, ...left}: FrameFaceType): FrameFace => ({
-                    ...left,
+            // const dbFaces = db.prepare('SELECT * FROM frameFace WHERE frameFilePath = ?').all(frame.filePath) as FrameFaceType[];
+            // const frameFaces: FrameFace[] = dbFaces.map(
+            //     ({value, ...left}: FrameFaceType): FrameFace => ({
+            //         ...left,
+            //         face: JSON.parse(value),
+            //     })
+            // );
+            const frameFaces: FrameFace[] = (JSON.parse(frameFacesStr) as FrameFaceType[])
+                .map(({value, ...frameFaceLeft}) => ({
+                    ...frameFaceLeft,
                     face: JSON.parse(value),
-                })
-            );
+                }))
 
             return {
                 ...frame,

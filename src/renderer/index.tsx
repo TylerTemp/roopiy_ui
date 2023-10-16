@@ -14,6 +14,8 @@ import Home from '~/Pages/Home'
 import Edit from '~/Pages/Edit'
 import NotFound from '~/Pages/NotFound'
 
+import CtrlWheelZoom from '~/Components/CtrlWheelZoom'
+
 // import App from "./components/App";
 
 // const rootElement = document.getElementById("root");
@@ -23,6 +25,7 @@ import NotFound from '~/Pages/NotFound'
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<ThemeProvider>
         <CssBaseline />
         <ErrorBoundary>
+            <CtrlWheelZoom />
             <ToastContainer />
             <Router>
                 <HelmetProvider>

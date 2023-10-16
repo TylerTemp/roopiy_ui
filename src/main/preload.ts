@@ -7,6 +7,7 @@ import Face from '~s/Types/Face';
 import { type UpdateFrameFaceType } from './Edit/Types';
 import Channel from './IpcChannel';
 import { ParsedFaceLibType } from './Edit/Types';
+import { webFrame } from 'electron';
 
 const electronHandler = {
     ipcRenderer: {
@@ -29,6 +30,9 @@ const electronHandler = {
         // invoke(channel: Channels, ...args: unknown[]) {
         //     return ipcRenderer.invoke(channel, ...args);
         // },
+        WebFrame: {
+            setZoomOffset: (zoomOffset: number) => webFrame.setZoomFactor(Math.max(0.00001, webFrame.getZoomFactor() + zoomOffset)),
+        },
 
         Project: {
             GetList: () => ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.GetList) as Promise<string[]>,

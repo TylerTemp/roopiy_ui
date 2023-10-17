@@ -75,6 +75,9 @@ export default ({projectFolder, allFaces, checkGroupIds, onSwapChanged}: Props) 
                             onSwapChanged(groupId, newFaceId);
                         } }
                     >
+                        <MenuItem value="">
+                            None
+                        </MenuItem>
                         {allFaces.map(({id, file, alias}) => <MenuItem key={id} value={id.toString()}>
                             <Avatar src={`project://${projectFolder}/${file}`} /> {alias}
                         </MenuItem>)}

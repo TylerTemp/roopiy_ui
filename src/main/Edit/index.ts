@@ -347,7 +347,7 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
                 ${arrayItems.join(",\n")}
             ]`;
 
-            console.log(bodyJson);
+            // console.log(bodyJson);
 
             // eslint-disable-next-line no-await-in-loop
             await fetch(`http://${WrapperHost}/swap-faces?from_file=${encodeURIComponent(sourcePath)}&to_file=${encodeURIComponent(targetPath)}`, {
@@ -366,7 +366,7 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
                 });
         }
 
-        callback(index+1, allFilePath.length, `${index+1}/${allFilePath.length}${filePath}`);
+        callback(index+1, allFilePath.length, `${index+1}/${allFilePath.length} - ${filePath}`);
     }
 
     // mp4
@@ -405,7 +405,7 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
         mp4Path
     ];
 
-    const audioResult = spawnSync('ffmpeg', createArgs, { encoding: 'utf-8', shell: false });
+    const audioResult = spawnSync('ffmpeg', audioArgs, { encoding: 'utf-8', shell: false });
     console.assert(audioResult.status === 0);
 
     return Promise.resolve(mp4Path);

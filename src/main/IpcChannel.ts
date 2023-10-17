@@ -31,6 +31,7 @@ export default {
         k: 'Util',
         v: {
             IdentifyFaces: 'IdentifyFaces',
+            CloseDatabase: 'CloseDatabase',
         }
     }
 }

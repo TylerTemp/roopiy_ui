@@ -107,7 +107,8 @@ export default () => {
         });
     }
 
-    const NavigateToProject = () => {
+    const CloseThenNavigateToProject = () => {
+        window.electron.ipcRenderer.Util.CloseDatabase(selectedProjectFolder);
         navigate(`/edit/${selectedProjectFolder}`);
     }
 
@@ -176,13 +177,17 @@ export default () => {
             })
             .then(() => addCache(selectedProjectFolder, ProjecetToEdit(project)))
             .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))
-            .then(NavigateToProject)
+            .then(CloseThenNavigateToProject)
             .catch(err => {
                 console.error(err);
                 setLoading({loading: false, loadingText: null, loadingProgress: -1});
                 enqueueSnackbar(err.message, 'error');
             });
     };
+
+    // useEffect(() => {
+    //     return () => window.electron.ipcRenderer.Util.CloseDatabase(selectedProjectFolder);
+    // }, []);
 
     // console.log(isNewProject);
     // const theme = useTheme();
@@ -194,7 +199,7 @@ export default () => {
                         CreateProject();
                     }
                     else {
-                        NavigateToProject();
+                        CloseThenNavigateToProject();
                     }
                 }}>
                     <Stack gap={1}>

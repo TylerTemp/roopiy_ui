@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import RetryErrorSuspense, { RendererProps } from "~/Components/RetryErrorSuspense";
 import { FrameFace } from "~s/Types/Edit";
@@ -251,6 +251,14 @@ export default () => {
                 });
         }
     }, [projectFolder]);
+
+    useEffect(() => {
+        return () => {
+            if(projectFolder) {
+                window.electron.ipcRenderer.Util.CloseDatabase(projectFolder);
+            }
+        }
+    }, []);
 
     return <>
         <Typography variant="h1" className={Style.textCenter}>{projectFolder}</Typography>

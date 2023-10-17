@@ -6,6 +6,7 @@ import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProjec
 import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib, UpdateFrameFaces } from './Edit';
 import { UpdateFrameFaceType } from './Edit/Types';
 import { IdentifyFaces } from './Utils/Face';
+import { Close } from './Utils/DB/Database';
 
 export default (ipcMain: IpcMain): void => {
 
@@ -90,6 +91,11 @@ export default (ipcMain: IpcMain): void => {
             {
                 const [_, imagePath] = args;
                 return IdentifyFaces(imagePath as string);
+            }
+            case Channel.Util.v.CloseDatabase:
+            {
+                const [_, projectFolder] = args;
+                return Close(projectFolder as string);
             }
             default:
                 throw new Error(`unknown channel ${Channel.Edit.k}:${args[0]} with args: ${args.slice(1)}`);

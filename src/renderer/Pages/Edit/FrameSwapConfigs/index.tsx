@@ -1,13 +1,15 @@
 import Select from "@mui/material/Select";
 import MenuItem from '@mui/material/MenuItem';
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { FacesDistances } from "~s/Face";
 import { FrameFace } from "~s/Types/Edit";
+import Stack from "@mui/material/Stack";
 import { FrameFacesEdited } from "../Face";
-// import { FrameFacesEdited } from "..";
+import SwapGroupIds, { type NumberKV } from "./SwapGroupIds";
+
 
 interface Props {
     frameFaces: FrameFacesEdited[];
@@ -22,38 +24,70 @@ const GroupSwitch = ({}: Pick<Props, "frameFaces" | "setFrameFaces" | "selectedR
 }
 
 
-type ApplyTarget = "all" | "selected" | "range";
+type ApplyTarget = "All" | "Range" | "Group" | "Frame";
+
+
+const FindGroupStartIndex = (frameFaces: Props["frameFaces"], selectedFrameIndex: number, selectedGroupId: number): number => frameFaces
+    .slice(0, selectedFrameIndex+1)
+    .map(({faces}, index) => ({faces, index}))
+    .reverse()
+    .find(({faces}) => faces.every(({groupId}) => groupId !== selectedGroupId))
+    ?.index ?? 0;
+
+const FindGroupEndIndex = (frameFaces: Props["frameFaces"], selectedFrameIndex: number, selectedGroupId: number): number => frameFaces
+    .map(({faces}, index) => ({faces, index}))
+    .slice(selectedFrameIndex+1)
+    .find(({faces}) => faces.every(({groupId}) => groupId !== selectedGroupId))
+    ?.index ?? (frameFaces.length - 1);
+
+const CutFrameFacesArray = (frameFaces: Props["frameFaces"], selectedRange: Props["selectedRange"], selectedFrameIndex: number, selectedFaceIndex: number, applyTargetStart: ApplyTarget, applyTargetEnd: ApplyTarget): [FrameFacesEdited[], FrameFacesEdited[], FrameFacesEdited[]] => {
+    const selectedFace = frameFaces[selectedFrameIndex].faces[selectedFaceIndex];
+    const groupId: number | null = selectedFace?.groupId ?? null;
+    const startIndex: number = {
+        "All": 0,
+        "Range": selectedRange[0],
+        "Group": groupId === null? -1: FindGroupStartIndex(frameFaces, selectedFrameIndex, groupId),
+        "Frame": selectedFrameIndex,
+    }[applyTargetStart];
+    const endIndex: number = {
+        "All": frameFaces.length-1,
+        "Range": selectedRange[1],
+        "Group": groupId === null? -1: FindGroupEndIndex(frameFaces, selectedFrameIndex, groupId),
+        "Frame": selectedFrameIndex,
+    }[applyTargetEnd];
+
+    console.assert(startIndex >= 0 && startIndex < frameFaces.length);
+    console.assert(endIndex >= 0 && endIndex < frameFaces.length);
+    console.assert(startIndex <= endIndex);
+
+    return [
+        frameFaces.slice(0, startIndex),
+        frameFaces.slice(startIndex, endIndex+1),
+        frameFaces.slice(endIndex+1)
+    ];
+}
+
 
 export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange], selectedFrameIndex}: Props) => {
 
-    const [applyTarget, setApplyTarget] = useState<ApplyTarget>("range");
+    const [[applyTargetStart, applyTargetEnd], setApplyTarget] = useState<[ApplyTarget, ApplyTarget]>(["Range", "Range"]);
     // const [similar, setSimilar] = useState<number>(0.85);
     const [positionDistance, setPositionDistance] = useState<number>(0.5);
+    const [selectedFaceIndex, setSelectedFaceIndex] = useState<number>(0);
+    const [groupIdSwap, setGroupIdSwap] = useState<NumberKV>({});
+    useEffect(() => {
+        setSelectedFaceIndex(0);
+    }, [selectedFaceIndex]);
+
+    const allGroupIds = useMemo(() => new Set(frameFaces.map(({faces}) => faces.map(({groupId}) => groupId)).flat()), [frameFaces]);
 
     const applyDistance = () => setFrameFaces((oldFaces: FrameFacesEdited[]): FrameFacesEdited[] => {
-        let targetFaces: FrameFacesEdited[] = [];
-        let preFaces: FrameFacesEdited[] = [];
-        let postFaces: FrameFacesEdited[] = [];
-        switch(applyTarget) {
-            case "all":
-                targetFaces = oldFaces;
-                break;
-            // case "selected":
-            //     targetFaces = frameFaces.slice(selectedFrameIndex, selectedFrameIndex+1);
-            //     break;
-            case "range":
-                targetFaces = oldFaces.slice(startRange, endRange+1);
-                preFaces = oldFaces.slice(0, startRange);
-                postFaces = oldFaces.slice(endRange+1);
-                break;
-            default:
-                throw new Error(`Invalid applyTarget ${applyTarget}`);
-        }
+        const [preFaces, targetFaces, postFaces] = CutFrameFacesArray(oldFaces, [startRange, endRange], selectedFrameIndex, selectedFaceIndex, applyTargetStart, applyTargetEnd);
+
+        console.assert(targetFaces.length >= 2);
 
         const [first, ...rest] = targetFaces;
         let {faces: prevFaces} = first;
-
-        const allGroupIds = new Set(oldFaces.map(({faces}) => faces.map(({groupId}) => groupId)).flat());
 
         const restFaces = rest.map((eachFrameFaces): FrameFacesEdited => {
             const {faces: curFaces, ...leftFrameArgs} = eachFrameFaces;
@@ -75,9 +109,9 @@ export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange
                         targetFace.groupId = useId;
                         edited = true;
                     }
-                    else {
-                        // console.log(`no match, ${targetFace.id} targetFace.groupId ${targetFace.groupId} not taken, use same`);
-                    }
+                    // else {
+                    //     console.log(`no match, ${targetFace.id} targetFace.groupId ${targetFace.groupId} not taken, use same`);
+                    // }
                 }
                 else {  //
                     console.assert(!takenGroupIds.has(closest.oriFace.groupId));
@@ -99,20 +133,63 @@ export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange
 
         console.log(`updated frame faces`);
         return [...preFaces, first, ...restFaces, ...postFaces];
-    })
+    });
 
-    const allGroupIds = useMemo(() => new Set(frameFaces.map(({faces}) => faces.map(({groupId}) => groupId)).flat()), [frameFaces]);
+    const applyGroupIdSwap = () => setFrameFaces((oldFaces: FrameFacesEdited[]): FrameFacesEdited[] => {
+        const [preFaces, targetFaces, postFaces] = CutFrameFacesArray(oldFaces, [startRange, endRange], selectedFrameIndex, selectedFaceIndex, applyTargetStart, applyTargetEnd);
+
+        console.assert(targetFaces.length >= 1);
+
+        const changedTargetFaces = targetFaces.map((eachFrameFaces): FrameFacesEdited => {
+            const {faces, ...left} = eachFrameFaces;
+            let hasChange: boolean = false;
+            const newFaces = faces.map((face): FrameFace => {
+                const {groupId} = face;
+                const newGroupId = groupIdSwap[groupId];
+                if(newGroupId !== undefined && newGroupId !== groupId) {
+                    hasChange = true;
+                    return {...face, groupId: newGroupId};
+                }
+                return face;
+            });
+            if(!hasChange) {
+                return eachFrameFaces;
+            }
+            return {...left, faces: newFaces, edited: true};
+        });
+
+        console.log(`updated frame faces`);
+        return [...preFaces, ...changedTargetFaces, ...postFaces];
+    });
+
+    const selectedAllGroupIds = useMemo(() => {
+        const [_, targetFrameFaces, __] = CutFrameFacesArray(frameFaces, [startRange, endRange], selectedFrameIndex, selectedFaceIndex, applyTargetStart, applyTargetEnd);
+        return Array.from(new Set(targetFrameFaces.map(({faces}) => faces.map(({groupId}) => groupId)).flat())).sort();
+    }, [frameFaces, selectedFrameIndex, selectedFaceIndex]);
 
     return <>
-        <Select
-            value={applyTarget}
-            label="Apply Target"
-            onChange={(event) => setApplyTarget(event.target.value as ApplyTarget)}
-        >
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="selected">Selected</MenuItem>
-            <MenuItem value="range">Range</MenuItem>
-        </Select>
+        <Stack direction="row">
+            <Select
+                value={applyTargetStart}
+                label="From"
+                onChange={(event) => setApplyTarget(([_, end]) => ([event.target.value as ApplyTarget, end]))}
+            >
+                <MenuItem value="All">All</MenuItem>
+                <MenuItem value="Range">Range</MenuItem>
+                <MenuItem value="Group">Group</MenuItem>
+                <MenuItem value="Frame">Frame</MenuItem>
+            </Select>
+            <Select
+                value={applyTargetEnd}
+                label="To"
+                onChange={(event) => setApplyTarget(([start, _]) => ([start, event.target.value as ApplyTarget]))}
+            >
+                <MenuItem value="All">All</MenuItem>
+                <MenuItem value="Range">Range</MenuItem>
+                <MenuItem value="Group">Group</MenuItem>
+                <MenuItem value="Frame">Frame</MenuItem>
+            </Select>
+        </Stack>
 
         <Box>
             <TextField
@@ -121,7 +198,16 @@ export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange
                 value={positionDistance}
                 onChange={(event) => setPositionDistance(parseFloat(event.target.value))}
             />
-            <Button onClick={applyDistance} disabled={applyTarget === "selected"}>Apply</Button>
+            <Button onClick={applyDistance}>Apply</Button>
+        </Box>
+
+        <Box>
+            <SwapGroupIds
+                onSwapChanged={setGroupIdSwap}
+                checkGroupIds={selectedAllGroupIds}
+                allGroupIds={Array.from(allGroupIds).sort()}
+            />
+            <Button onClick={applyGroupIdSwap} disabled={Object.keys(groupIdSwap).length === 0}>Apply</Button>
         </Box>
     </>;
 }

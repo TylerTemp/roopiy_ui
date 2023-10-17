@@ -81,11 +81,11 @@ const GetOrCreateDatabase = (key: string, asFile: boolean): Sqlite.Database => {
     return db;
 }
 
-export const Close = (key: string) => {
+export const Close = (key: string): void => {
     const db = dbMap[key];
     if(db) {
-        db.close();
         delete dbMap[key];
+        db.close();
     }
 }
 

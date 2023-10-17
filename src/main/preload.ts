@@ -39,7 +39,10 @@ const electronHandler = {
             GetConfig: (name: string): Promise<ProjectType> => {
                 const result = ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.GetConfig, name);
                 console.assert(result !== null);
-                return result as Promise<ProjectType>;
+                return (result as Promise<ProjectType>)
+                    .finally(() => {
+                        ipcRenderer.invoke(Channel.Util.k, Channel.Util.v.CloseDatabase, name);
+                    });
             },
 
             GetVideoSeconds: (videoFile: string): Promise<number> => {
@@ -144,6 +147,9 @@ const electronHandler = {
         Util: {
             IdentifyFaces: (imagePath: string): Promise<Face[]> => {
                 return ipcRenderer.invoke(Channel.Util.k, Channel.Util.v.IdentifyFaces, imagePath) as Promise<Face[]>;
+            },
+            CloseDatabase: (projectFolder: string): void => {
+                ipcRenderer.invoke(Channel.Util.k, Channel.Util.v.CloseDatabase, projectFolder);
             },
         }
     },

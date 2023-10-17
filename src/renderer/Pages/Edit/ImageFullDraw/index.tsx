@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, ChangeEvent } from 'react';
 import Typography from '@mui/material/Typography';
 import { Format } from '~/Utils/Str';
 import { Rect } from '~s/Face';
@@ -8,6 +8,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import { RectScale } from '../Face';
 import Style from './index.scss';
+import Stack from '@mui/material/Stack';
 
 
 interface DrawInfo {
@@ -25,7 +26,8 @@ interface DrawCanvasProps extends NodeSizeInfoProps {
     image: HTMLImageElement
     imageWidth: number
     drawInfos: DrawInfo[]
-    showDistance: boolean
+    showDistance: boolean,
+    showFaceRect: boolean,
 }
 
 const TextHeight = (ctx: CanvasRenderingContext2D, text: string): number => {
@@ -37,8 +39,8 @@ const GenerateCombinations = <T,>(arr: T[]): [T, T][] => {
     const combinations: [T, T][] = [];
     const n = arr.length;
 
-    for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
+    for (let i = 0; i < n; i+=1) {
+        for (let j = i + 1; j < n; j+=1) {
             combinations.push([arr[i], arr[j]]);
         }
     }
@@ -46,7 +48,7 @@ const GenerateCombinations = <T,>(arr: T[]): [T, T][] => {
     return combinations;
 }
 
-const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, showDistance, drawInfos}: DrawCanvasProps) => {
+const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, showDistance, showFaceRect, drawInfos}: DrawCanvasProps) => {
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -62,24 +64,27 @@ const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, showDistance, dra
 
         ctx.drawImage(image, 0, 0, nodeWidth, nodeHeight);
 
-        for (let drawIndex = 0; drawIndex < drawInfos.length; drawIndex+=1) {
-            ctx.beginPath();
+        if(showFaceRect)
+        {
+            for (let drawIndex = 0; drawIndex < drawInfos.length; drawIndex+=1) {
+                ctx.beginPath();
 
-            const {rect, text, color='yellow'} = drawInfos[drawIndex];
+                const {rect, text, color='yellow'} = drawInfos[drawIndex];
 
-            ctx.strokeStyle = color;
-            ctx.fillStyle = color;
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
 
-            const rectScale: Rect = RectScale(rect, nodeWidth / imageWidth);
-            ctx.rect(rectScale.left, rectScale.top, rectScale.right - rectScale.left, rectScale.bottom - rectScale.top);
+                const rectScale: Rect = RectScale(rect, nodeWidth / imageWidth);
+                ctx.rect(rectScale.left, rectScale.top, rectScale.right - rectScale.left, rectScale.bottom - rectScale.top);
 
-            if(text !== null) {
-                const drawText: string = Format(text, {'index': drawIndex.toString()});
-                // console.log(`draw`, drawText, color);
-                ctx.fillText(drawText, rectScale.left, rectScale.bottom + ctx.lineWidth + TextHeight(ctx, drawText));
+                if(text !== null) {
+                    const drawText: string = Format(text, {'index': drawIndex.toString()});
+                    // console.log(`draw`, drawText, color);
+                    ctx.fillText(drawText, rectScale.left, rectScale.bottom + ctx.lineWidth + TextHeight(ctx, drawText));
+                }
+                ctx.stroke();
+                ctx.closePath();
             }
-            ctx.stroke();
-            ctx.closePath();
         }
 
         if(showDistance && drawInfos.length >= 2) {
@@ -123,7 +128,7 @@ const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, showDistance, dra
         if(canvasRef.current) {
             renderCanvasInfo(canvasRef.current);
         }
-    }, [image, drawInfos, showDistance]);
+    }, [image, drawInfos, showDistance, showFaceRect]);
 
     return <canvas className={Style.canvas} ref={handleCanvas} width={nodeWidth} height={nodeHeight} />
 }
@@ -144,6 +149,7 @@ export default ({src, width, height, drawInfos}: Props) => {
     const [nodeWidth, setNodeWidth] = useState<number>(-1);
     const [image, setImage] = useState<HTMLImageElement | null>(null);
     const [showDistance, setShowDistance] = useState<boolean>(true);
+    const [showFaceRect, setShowFaceRect] = useState<boolean>(true);
 
     const handleDivWidth = useCallback((canvasNode: HTMLDivElement) => {
         if(canvasNode) {
@@ -168,7 +174,7 @@ export default ({src, width, height, drawInfos}: Props) => {
 
     return <>
         <Box className={Style.container} ref={handleDivWidth} height={nodeWidth > 0 ? canvasResizedHeight: undefined}>
-            {nodeWidth > 0 && image !== null && <DrawCanvas showDistance={showDistance} nodeWidth={nodeWidth} nodeHeight={canvasResizedHeight} image={image} imageWidth={width} drawInfos={drawInfos} />}
+            {nodeWidth > 0 && image !== null && <DrawCanvas showDistance={showDistance} showFaceRect={showFaceRect} nodeWidth={nodeWidth} nodeHeight={canvasResizedHeight} image={image} imageWidth={width} drawInfos={drawInfos} />}
             {loading && <Box className={Style.loadingContainer}>
                 <CircularProgress />
                 <Typography variant='caption'>
@@ -176,6 +182,9 @@ export default ({src, width, height, drawInfos}: Props) => {
                 </Typography>
             </Box>}
         </Box>
-        <FormControlLabel control={<Checkbox checked={showDistance} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setShowDistance(event.target.checked)} />} label="Show Distance" />
+        <Stack gap={1} direction="row">
+            <FormControlLabel control={<Checkbox checked={showDistance} onChange={(event: ChangeEvent<HTMLInputElement>) => setShowDistance(event.target.checked)} />} label="Distance" />
+            <FormControlLabel control={<Checkbox checked={showFaceRect} onChange={(event: ChangeEvent<HTMLInputElement>) => setShowFaceRect(event.target.checked)} />} label="Face Rect" />
+        </Stack>
     </>
 }

@@ -1,140 +1,84 @@
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import { forwardRef, useRef, useImperativeHandle, useState, useEffect } from "react";
-
-interface SwapGroupProps {
-    groupId: number;
-    groupIds: number[];
-    onToGroupChanged: (groupId: number, oldGroupId: number, newGroupId: number) => void;
-}
-
-interface SwapGroupCallbacks {
-    // GetSwap: () => [number, number];
-    setToGroup: (groupId: number) => void,
-}
-
-const SwapGroup = forwardRef<SwapGroupCallbacks, SwapGroupProps>(({groupId, groupIds, onToGroupChanged}: SwapGroupProps, ref) => {
-
-    const [toGroup, setToGroup] = useState<number>(groupId);
-    const WrapSetToGroup = (newGroupId: number) => {
-        setToGroup(oldGroupdId => {
-            onToGroupChanged(groupId, oldGroupdId, newGroupId);
-            return newGroupId;
-        });
-    }
-
-    useImperativeHandle(ref, () => ({
-        // GetSwap: () => [0, 0],
-        setToGroup,
-    }));
-
-    return <Select
-        value={toGroup}
-        // label="From"
-        onChange={({target: {value}}) => {
-            const newGroupId = parseInt(value as string, 10);
-            if(!Number.isNaN(newGroupId)) {
-                WrapSetToGroup(value as number);
-            }
-        }}
-    >
-        {groupIds.map((eachGroupId) => <option key={eachGroupId} value={eachGroupId}>{eachGroupId}</option>)}
-    </Select>;
-});
+import { useState, useEffect } from "react";
+import PickColor from "../PickColor";
 
 
-interface Props {
-    allGroupIds: number[];
-}
-
-interface NumberKV {
+export interface NumberKV {
     [key: number]: number;
 }
 
 
-const CreateObjFromArr = (arr: number[]): NumberKV => arr.reduce((o, key) => ({ ...o, [key]: key}), {});
+
+interface Props {
+    allGroupIds: number[];
+    checkGroupIds: number[];
+    onSwapChanged: (swap: NumberKV) => void;
+}
 
 
-export default ({allGroupIds}: Props) => {
 
-    const [swapGroupMap, setSwapGroupMap] = useState<NumberKV>(CreateObjFromArr(allGroupIds));
+const CreateObjFromArr = (arr: number[]): Map<number, number> => new Map<number, number>(arr.map(each => [each, each]));
+
+
+export default ({allGroupIds, checkGroupIds, onSwapChanged}: Props) => {
+
+    const [swapGroupMap, setSwapGroupMap] = useState<Map<number, number>>(CreateObjFromArr(checkGroupIds));
     useEffect(() => {
-        setSwapGroupMap(CreateObjFromArr(allGroupIds));
-    }, [allGroupIds]);
+        setSwapGroupMap(CreateObjFromArr(checkGroupIds));
+    }, [checkGroupIds]);
 
     const setSwapGroup = (groupId: number, newGroupId: number) => {
-        setSwapGroupMap(oldMap => {
-            const conflictGroupId = oldMap.find();
-            const conflictValue = oldMap[groupId];
+        setSwapGroupMap((oldMap): Map<number, number> => {
+            const conflictInfo = [...oldMap.entries()].find(([_key, value]) => value === newGroupId);
+            if(conflictInfo === undefined) {
+                const newMap = new Map<number, number>(oldMap.entries());
+                newMap.set(groupId, newGroupId);
+                onSwapChanged(Object.fromEntries([...newMap.entries()].filter(([key, value]) => key !== value)));
+                return newMap;
+            }
+
+            const [conflictGroupId, _] = conflictInfo;
+            const conflictValue = oldMap.get(groupId);
             console.log(groupId, '->', newGroupId, '|', conflictGroupId, '->', conflictValue);
 
-            const result = {...oldMap, [groupId]: newGroupId, [conflictGroupId]: conflictValue};
-            console.log(result);
-            return result;
+            const newMap = new Map<number, number>(oldMap.entries());
+            newMap.set(groupId, newGroupId);
+            newMap.set(conflictGroupId, conflictValue!);
+
+            onSwapChanged(Object.fromEntries([...newMap.entries()].filter(([key, value]) => key !== value)));
+
+            return newMap;
         });
     }
 
-    // const swapGroupCallbacksMapRef = useRef<Map<number, SwapGroupCallbacks> | null>(null);
-    // const GetSwapGroupCallbacksMapRef = () => {
-    //     if(!swapGroupCallbacksMapRef.current) {
-    //         swapGroupCallbacksMapRef.current = new Map();
-    //     }
-    //     return swapGroupCallbacksMapRef.current;
-    // }
-
-    // const onToGroupChanged = (groupId: number, oldGroupId: number, newGroupId: number) => {
-    //     const oldRef = GetSwapGroupCallbacksMapRef().get(oldGroupId);
-    //     console.assert(oldRef);
-
-    // }
 
     return <>
-        {/* {allGroupIds.map((groupId) => <SwapGroup
-            key={groupId}
-            // ref={(node) => {
-            //     const map = GetSwapGroupCallbacksMapRef();
-            //     if(node) {
-            //         map.set(groupId, node);
-            //     }
-            //     else {
-            //         map.delete(groupId);
-            //     }
-            // }}
-
-            groupId={groupId}
-            groupIds={allGroupIds}
-            // onToGroupChanged={}
-            onToGroupChanged={onToGroupChanged}
-        />)} */}
-
-        {allGroupIds.map(groupId => <Select
-            key={groupId}
-            value={swapGroupMap[groupId]}
-            label={`${groupId}`}
-            onChange={({target: {value}}) => {
-                const newGroupId = parseInt(value as string, 10);
-                if(!Number.isNaN(newGroupId)) {
-                    // WrapSetToGroup(value as number);
-                    setSwapGroup(groupId, newGroupId);
-                }
-            }}
-        >
-            {allGroupIds.map((eachGroupId) => <MenuItem key={eachGroupId} value={eachGroupId}>{eachGroupId}</MenuItem>)}
-        </Select>)}
-
-        {/* {allGroupIds.map((groupId) => <Select
-            key={groupId}
-            value={groupId}
-            // label="From"
-            onChange={({target: {value}}) => {
-                const newGroupId = parseInt(value as string, 10);
-                if(!Number.isNaN(newGroupId)) {
-                    // WrapSetToGroup(value as number);
-                    setSwapGroup(groupId, newGroupId);
-                }
-            }}
-        >
-            {allGroupIds.map((eachGroupId) => <MenuItem key={eachGroupId} value={eachGroupId}>{eachGroupId}</MenuItem>)}
-        </Select>)} */}
+        {checkGroupIds.map(groupId => {
+            // console.log(`groupId: ${groupId} get`, swapGroupMap.get(groupId));
+            const swapGroupId = swapGroupMap.get(groupId) || allGroupIds[0];
+            return <FormControl
+                key={groupId}
+            >
+                <InputLabel><span style={{ color: PickColor(groupId) }}>{groupId}</span></InputLabel>
+                <Select
+                    value={swapGroupId}
+                    label={`${groupId}`}
+                    onChange={({ target: { value } }) => {
+                        const newGroupId = parseInt(value as string, 10);
+                        if (!Number.isNaN(newGroupId)) {
+                            // WrapSetToGroup(value as number);
+                            setSwapGroup(groupId, newGroupId);
+                        }
+                    } }
+                >
+                    {allGroupIds.map((eachGroupId) => <MenuItem key={eachGroupId} value={eachGroupId}>
+                        <span style={{ color: PickColor(eachGroupId) }}>{eachGroupId}</span>
+                    </MenuItem>)}
+                </Select>
+            </FormControl>;
+        })}
     </>
 }

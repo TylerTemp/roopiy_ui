@@ -101,20 +101,27 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
         });
 
         window.electron.ipcRenderer.Edit.UpdateFrameFaces(projectFolder, bulkChanges, (cur) => {
-            setLoading({
-                loading: true,
+            // console.log(`callback loading`);
+            setLoading(prev => ({
+                ...prev,
                 loadingText: `Saving ${cur}/${bulkChanges.length} frame faces...`,
                 loadingProgress: cur / bulkChanges.length,
-            });
+            }));
         })
         .then(() => {
             setCachedFrameFaces(prev => prev.map(each => ({...each, edited: false})));
-            setLoading(prev => ({...prev, loading: false}));
+            // console.log(`set loading to false`);
+            setLoading({
+                loading: false,
+                loadingText: null,
+                loadingProgress: -1,
+            });
             enqueueSnackbar('Saved', 'success');
         })
         .catch(({message}) => enqueueSnackbar(message, 'error'));
-
     }
+
+    // console.log(`loading`, loading);
 
     return <>
         <FaceLib projectFolder={projectFolder as string} faces={faceLibFaces} onAddFace={newFace => setCacheFaceLibFaces(prev => [...prev, newFace])} />

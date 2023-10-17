@@ -262,7 +262,7 @@ export const SaveFaceLib = async (projectFolder: string, face: Face, file: strin
 }
 
 
-export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrameFaceType[], callback: (cur: number) => void): void => {
+export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrameFaceType[], callback: (cur: number) => void): Promise<void> => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
 
     for (let index = 0; index < buckChanges.length; index+=1) {
@@ -276,4 +276,5 @@ export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrame
         callback(index+1);
     }
 
+    return Promise.resolve();
 }

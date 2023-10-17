@@ -3,11 +3,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import { Format } from '~/Utils/Str';
-import { Rect, RectCenterDirection } from '~s/Face';
-import { RectScale } from '../Face';
-import Style from './index.scss';
+import { Rect } from '~s/Face';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import { RectScale } from '../Face';
+import Style from './index.scss';
 
 
 interface DrawInfo {
@@ -98,7 +98,7 @@ const DrawCanvas = ({nodeWidth, nodeHeight, imageWidth, image, showDistance, dra
                 const lineCenterX = (rect1CenterX + rect2CenterX) / 2;
                 const lineCenterY = (rect1CenterY + rect2CenterY) / 2;
 
-                const distance = Math.sqrt((rect1CenterX - rect2CenterX)**2 + Math.pow(rect1CenterY - rect2CenterY, 2));
+                const distance = Math.sqrt((rect1CenterX - rect2CenterX)**2 + (rect1CenterY - rect2CenterY)**2);
 
                 ctx.beginPath();
                 ctx.moveTo(rect1CenterX, rect1CenterY);

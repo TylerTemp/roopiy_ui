@@ -4,10 +4,10 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import ProjectType from '~s/Types/Project';
 import { FrameFaces } from '~s/Types/Edit';
 import Face from '~s/Types/Face';
+import { webFrame } from 'electron';
 import { type UpdateFrameFaceType } from './Edit/Types';
 import Channel from './IpcChannel';
 import { ParsedFaceLibType } from './Edit/Types';
-import { webFrame } from 'electron';
 
 const electronHandler = {
     ipcRenderer: {

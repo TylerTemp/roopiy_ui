@@ -8,7 +8,8 @@ import WebSocket from 'ws';
 import ImageSize from 'image-size';
 import {ProjectsRoot, WrapperHost} from '../Utils/Config';
 import { IdentifyFaces } from '../Utils/Face';
-import Database, { Close, type FrameType, type FrameFaceType } from '../Utils/DB/Database';
+import Database, { Close } from '../Utils/DB/Database';
+import { type FrameType, type FrameFaceType } from '../Utils/DB/Types';
 
 
 export const GetList = (): string[] => {

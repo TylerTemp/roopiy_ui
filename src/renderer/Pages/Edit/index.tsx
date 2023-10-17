@@ -83,10 +83,12 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
 
     const { colorPlattes } = useTheme();
 
+    const [savedKey, setSavedKey] = useState<number>(1);
+
     const OnSave = () => {
         const bulkChanges = cachedFrameFaces
             .filter(({edited}) => edited)
-            .map(({faces: toSaveFaces}) => toSaveFaces.map(({id, groupId, faceLibId}: FrameFace) => ({id, groupId, faceLibId})))
+            .map(({faces: toSaveFaces}) => toSaveFaces.map(({id, groupId, faceLibId}: FrameFace): UpdateFrameFace => ({id, groupId, faceLibId})))
             .flat();
 
         if(bulkChanges.length === 0) {
@@ -117,9 +119,43 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
                 loadingProgress: -1,
             });
             enqueueSnackbar('Saved', 'success');
+            setSavedKey(prev => -prev);
         })
         .catch(({message}) => enqueueSnackbar(message, 'error'));
-    }
+    };
+
+    const onGenerate = () => {
+        setLoading({
+            loading: true,
+            loadingText: `Generating...`,
+            loadingProgress: -1,
+        });
+        window.electron.ipcRenderer.Edit.GenerateProject(projectFolder, (cur, total, content) => {
+            setLoading(prev => ({
+                ...prev,
+                loadingText: content,
+                loadingProgress: total > 0? cur / total: -1,
+            }));
+        })
+        .then(filePath => {
+            console.log(filePath);
+            setLoading({
+                loading: false,
+                loadingText: null,
+                loadingProgress: -1,
+            });
+            enqueueSnackbar(`Generated: ${filePath}`, 'success');
+        })
+        .catch(error => {
+            console.error(error);
+            enqueueSnackbar(error.message, 'error');
+            setLoading({
+                loading: false,
+                loadingText: null,
+                loadingProgress: -1,
+            });
+        });
+    };
 
     // console.log(`loading`, loading);
 
@@ -133,7 +169,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
                 height={height}
                 drawInfos={faces.map((eachFace: FrameFace) => ({
                     rect: GetRectFromFace(eachFace.face),
-                    text: eachFace.faceLibId? `${eachFace.groupId}|${eachFace.faceLibId}`: `${eachFace.groupId}`,
+                    text: eachFace.faceLibId? `${eachFace.groupId}|${cacheFaceLibFaces.find(each => each.id === eachFace.faceLibId)!.alias}`: `${eachFace.groupId}`,
                     color: PickColor(eachFace.groupId, colorPlattes),
                 }))} />
             <Typography variant="caption" className={Style.textCenter}>{frameFile}[{faces.length}]</Typography>
@@ -193,6 +229,9 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
             </Box>
 
             <FrameSwapConfigs
+                key={savedKey}
+                projectFolder={projectFolder}
+                faceLibFaces={cacheFaceLibFaces}
                 frameFaces={cachedFrameFaces}
                 setFrameFaces={setCachedFrameFaces}
                 selectedRange={selectedRange}
@@ -202,6 +241,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
             <Box>
                 <Button onClick={() => OnSave()}>Save</Button>
                 <Button onClick={() => setCachedFrameFaces(frameFaces)}>Cancel</Button>
+                <Button onClick={() => onGenerate()}>Generate</Button>
             </Box>
 
         </Stack>

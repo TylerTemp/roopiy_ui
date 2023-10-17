@@ -142,6 +142,22 @@ const electronHandler = {
                         // return r;
                     });
             },
+            GenerateProject: (projectFolder: string, callback: (cur: number, total: number, content: string) => void): Promise<string> => {
+                const channelName = `${Channel.Edit.v.GenerateProjectEvent}.${projectFolder}`;
+                console.log(`setup channel ${channelName}`);
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, cur: number, total: number, content: string) => {
+                    callback(cur, total, content);
+                });
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.GenerateProject,
+                    channelName, projectFolder);
+
+                console.assert(result !== null);
+                return (result as Promise<string>)
+                    .then(r => {
+                        ipcRenderer.removeListener(channelName, callback);
+                        return r;
+                    });
+            }
         },
 
         Util: {

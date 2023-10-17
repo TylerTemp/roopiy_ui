@@ -10,15 +10,16 @@ import os
 import shutil
 import subprocess
 
+import cv2
 import docpie
 import flask
 # import flask_sockets
 import flask_sock
 
-from roopiy.faces import load_face_analyser, load_face_enhancer, load_face_swapper
+from roopiy.faces import load_face_analyser, load_face_enhancer, load_face_swapper, enhance_face
 from roopiy.extract_video import extract_frames
 from roopiy.identify import identify_faces_in_image
-from roopiy.utils import FaceJSONEncoder, Face
+from roopiy.utils import FaceJSONEncoder, Face, dict_to_face
 
 app = flask.Flask(__name__)
 sock = flask_sock.Sock(app)
@@ -129,6 +130,28 @@ def identify_faces():
     faces: list[Face]
     _, faces = identify_faces_in_image(face_analyser, file_path)
     return json.dumps(faces, cls=FaceJSONEncoder)
+
+
+@app.route('/swap-faces', methods=['POST'])
+def swap_faces():
+    logger = logging.getLogger('roopiy_wrapper.swap_faces')
+    source_image_path = flask.request.args.get('from_file')
+    target_image_path = flask.request.args.get('to_file')
+    # {source: dict, target: dict}[]
+    body_data = flask.request.get_data()
+    # logger.debug(body_data)
+    body = json.loads(body_data)
+
+    frame = cv2.imread(source_image_path)
+    for swap_info in body:
+        source_face = dict_to_face(swap_info['source'])
+        target_face = dict_to_face(swap_info['target'])
+        frame = face_swapper.get(frame, source_face, target_face, paste_back=True)
+        enhance_face(face_enhancer, source_face, frame)
+
+    # caller ensure target_image_path folder exists
+    cv2.imwrite(target_image_path, frame)
+    return target_image_path
 
 
 if __name__ == '__main__':

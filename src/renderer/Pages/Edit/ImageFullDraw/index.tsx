@@ -6,9 +6,9 @@ import { Format } from '~/Utils/Str';
 import { Rect } from '~s/Face';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import Stack from '@mui/material/Stack';
 import { RectScale } from '../Face';
 import Style from './index.scss';
-import Stack from '@mui/material/Stack';
 
 
 interface DrawInfo {

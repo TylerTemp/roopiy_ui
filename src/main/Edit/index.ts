@@ -5,12 +5,13 @@ import { type ISize } from 'image-size/dist/types/interface';
 import { copyFileSync, existsSync, mkdirSync } from "fs";
 import sharp from "sharp";
 import Face from "../../shared/Types/Face";
-import {ProjectsRoot} from '../Utils/Config';
+import {ProjectsRoot, WrapperHost} from '../Utils/Config';
 import Database from '../Utils/DB/Database';
 import {type FrameType, type FrameFaceType, type FaceLibType} from '../Utils/DB/Types';
 import { GetRectFromFace, Rect } from "../../shared/Face";
 import { clamp } from "../../shared/Util";
 import { ParsedFaceLibType, UpdateFrameFaceType } from "./Types";
+import { spawnSync } from "child_process";
 
 export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
@@ -262,7 +263,7 @@ export const SaveFaceLib = async (projectFolder: string, face: Face, file: strin
 }
 
 
-export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrameFaceType[], callback: (cur: number) => void): Promise<void> => {
+export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrameFaceType[], callback: (cur: number) => void): void => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
 
     for (let index = 0; index < buckChanges.length; index+=1) {
@@ -275,6 +276,137 @@ export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrame
         });
         callback(index+1);
     }
+}
 
-    return Promise.resolve();
+
+interface SourceTargetJson {
+    sourceStr: string,
+    targetStr: string,
+}
+
+
+export const GenerateProject = async (projectFolder: string, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+
+    callback(-1, -1, `loading faceLib`);
+
+    const allFaceLib = db.prepare('SELECT * FROM faceLib').all() as FaceLibType[];
+    const faceLibIdToFaceJsonMapString = new Map<number, string>();
+    allFaceLib.forEach(({id, value}) => faceLibIdToFaceJsonMapString.set(id, value));
+
+    callback(-1, -1, `loading frames`);
+
+    const allFilePath =
+        db
+            .prepare('SELECT filePath FROM frame')
+            .all() as {filePath: string}[];
+
+    const targetFolderPath = join(ProjectsRoot, projectFolder, 'swap');
+    if(!existsSync(targetFolderPath)) {
+        mkdirSync(targetFolderPath, { recursive: true });
+    }
+
+    callback(-1, -1, `start swap`);
+
+    // swap
+    for (let index = 0; index < allFilePath.length; index+=1) {
+        const {filePath} = allFilePath[index];
+
+        const frameFaceRaws = db
+            .prepare(`
+                SELECT faceLibId, value
+                FROM frameFace
+                WHERE faceLibId IS NOT NULL
+                  AND frameFace.frameFilePath = ?
+            `)
+            .all(filePath) as FrameFaceType[];
+
+        const parsedInfos: SourceTargetJson[] = frameFaceRaws.map(({faceLibId, value}): SourceTargetJson => {
+                const targetFaceStr = faceLibIdToFaceJsonMapString.get(faceLibId as number);
+                console.assert(targetFaceStr, `${filePath} ${faceLibId}`);
+                return ({
+                    sourceStr: value as string,
+                    targetStr: targetFaceStr as string,
+                });
+            });
+
+        const sourcePath = join(ProjectsRoot, projectFolder, filePath);
+        const targetPath = join(targetFolderPath, filePath.replaceAll('frames/', ''));
+
+        if(parsedInfos.length === 0) {
+            // just copy
+            copyFileSync(sourcePath, targetPath);
+        }
+        else {
+            const arrayItems = parsedInfos.map(({sourceStr, targetStr}) => `{
+                "source": ${sourceStr},
+                "target": ${targetStr}
+            }`);
+
+            const bodyJson = `[
+                ${arrayItems.join(",\n")}
+            ]`;
+
+            console.log(bodyJson);
+
+            // eslint-disable-next-line no-await-in-loop
+            await fetch(`http://${WrapperHost}/swap-faces?from_file=${encodeURIComponent(sourcePath)}&to_file=${encodeURIComponent(targetPath)}`, {
+                    method: 'POST',
+                    body: bodyJson,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(resp => {
+                        console.assert(resp.ok);
+                        return resp.text();
+                    })
+                    .then(resp => {
+                        console.log(resp);
+                });
+        }
+
+        callback(index+1, allFilePath.length, `${index+1}/${allFilePath.length}${filePath}`);
+    }
+
+    // mp4
+    callback(-1, -1, `creating video`);
+    const mp4TempPath = join(ProjectsRoot, projectFolder, 'output_slient.mp4');
+
+    const createArgs: string[] = [
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-hwaccel', 'auto',
+        '-r', `30`,  // fps
+        '-i', join(targetFolderPath, '%06d.png'),
+        '-c:v', 'libx264',
+        // '-crf', str(output_video_quality),
+        '-pix_fmt', 'yuv420p',
+        '-vf', 'colorspace=bt709:iall=bt601-6-625:fast=1',
+        '-y', mp4TempPath
+    ];
+
+    const silentResult = spawnSync('ffmpeg', createArgs, { encoding: 'utf-8', shell: false });
+    console.assert(silentResult.status === 0);
+
+    callback(-1, -1, `merge audio`);
+    const mp4Path = join(ProjectsRoot, projectFolder, 'output.mp4');
+    const mp4SourcePath = join(ProjectsRoot, projectFolder, 'source.mp4');
+    const audioArgs = [
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-hwaccel', 'auto',
+        '-i', mp4TempPath,
+        '-i', mp4SourcePath,
+        '-c:v', 'copy',
+        '-map', '0:v:0',
+        '-map', '1:a:0',
+        '-y',
+        mp4Path
+    ];
+
+    const audioResult = spawnSync('ffmpeg', createArgs, { encoding: 'utf-8', shell: false });
+    console.assert(audioResult.status === 0);
+
+    return Promise.resolve(mp4Path);
 }

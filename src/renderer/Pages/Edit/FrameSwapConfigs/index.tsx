@@ -9,10 +9,14 @@ import { FrameFace } from "~s/Types/Edit";
 import Stack from "@mui/material/Stack";
 import { FrameFacesEdited } from "../Face";
 import SwapGroupIds, { type NumberKV } from "./SwapGroupIds";
+import SwapFaceIds from "./SwapFaceIds";
+import { FaceLibType } from "../FaceLib";
 
 
 interface Props {
+    projectFolder: string,
     frameFaces: FrameFacesEdited[];
+    faceLibFaces: FaceLibType[];
     setFrameFaces: (callback: (frameFaces: FrameFacesEdited[]) => FrameFacesEdited[]) => void;
     selectedRange: [number, number];
     selectedFrameIndex: number;
@@ -68,7 +72,7 @@ const CutFrameFacesArray = (frameFaces: Props["frameFaces"], selectedRange: Prop
 }
 
 
-export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange], selectedFrameIndex}: Props) => {
+export default ({projectFolder, frameFaces, faceLibFaces, setFrameFaces, selectedRange: [startRange, endRange], selectedFrameIndex}: Props) => {
 
     const [[applyTargetStart, applyTargetEnd], setApplyTarget] = useState<[ApplyTarget, ApplyTarget]>(["Range", "Range"]);
     // const [similar, setSimilar] = useState<number>(0.85);
@@ -162,9 +166,55 @@ export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange
         return [...preFaces, ...changedTargetFaces, ...postFaces];
     });
 
+    const applyFaceSwap = (groupId: number, faceLibId: number | null) => setFrameFaces((oldFaces: FrameFacesEdited[]): FrameFacesEdited[] => {
+        const [preFaces, targetFaces, postFaces] = CutFrameFacesArray(oldFaces, [startRange, endRange], selectedFrameIndex, selectedFaceIndex, applyTargetStart, applyTargetEnd);
+
+        console.assert(targetFaces.length >= 1);
+
+        const changedTargetFaces = targetFaces.map((eachFrameFaces): FrameFacesEdited => {
+            const {faces, ...left} = eachFrameFaces;
+            let hasChange: boolean = false;
+            const newFaces = faces.map((face): FrameFace => {
+                const {groupId: checkGroupId, faceLibId: checkFaceLibId} = face;
+                if(groupId !== checkGroupId) {
+                    return face;
+                }
+                if(checkFaceLibId === faceLibId) {
+                    return face;
+                }
+                hasChange = true;
+                return {...face, faceLibId};
+            });
+            if(!hasChange) {
+                return eachFrameFaces;
+            }
+            return {...left, faces: newFaces, edited: true};
+        });
+
+        console.log(`updated frame faces`);
+        return [...preFaces, ...changedTargetFaces, ...postFaces];
+    });
+
     const selectedAllGroupIds = useMemo(() => {
         const [_, targetFrameFaces, __] = CutFrameFacesArray(frameFaces, [startRange, endRange], selectedFrameIndex, selectedFaceIndex, applyTargetStart, applyTargetEnd);
         return Array.from(new Set(targetFrameFaces.map(({faces}) => faces.map(({groupId}) => groupId)).flat())).sort();
+    }, [frameFaces, selectedFrameIndex, selectedFaceIndex]);
+
+    const selectedSwapFaceLibIds = useMemo(() => {
+        const [_, targetFrameFaces, __] = CutFrameFacesArray(frameFaces, [startRange, endRange], selectedFrameIndex, selectedFaceIndex, applyTargetStart, applyTargetEnd);
+        // return Array.from(new Set(targetFrameFaces.map(({faces}) => faces.map(({groupId}) => groupId)).flat())).sort();
+        const groupIdToFaceLibIds = new Map<number, number[]>();
+        targetFrameFaces.forEach(({faces}) => {
+            faces.forEach(({groupId, faceLibId}) => {
+                const faceLibIds = groupIdToFaceLibIds.get(groupId) ?? [];
+                if(faceLibId && !faceLibIds.includes(faceLibId)) {
+                    faceLibIds.push(faceLibId);
+                }
+                groupIdToFaceLibIds.set(groupId, faceLibIds);
+            });
+        });
+        return groupIdToFaceLibIds;
+
     }, [frameFaces, selectedFrameIndex, selectedFaceIndex]);
 
     return <>
@@ -208,6 +258,17 @@ export default ({frameFaces, setFrameFaces, selectedRange: [startRange, endRange
                 allGroupIds={Array.from(allGroupIds).sort()}
             />
             <Button onClick={applyGroupIdSwap} disabled={Object.keys(groupIdSwap).length === 0}>Apply</Button>
+        </Box>
+
+        <Box>
+            <SwapFaceIds
+                key={selectedFrameIndex}
+                projectFolder={projectFolder}
+                allFaces={faceLibFaces}
+                checkGroupIds={selectedSwapFaceLibIds}
+                onSwapChanged={applyFaceSwap}
+            />
+            {/* <Button onClick={applyGroupIdSwap} disabled={Object.keys(groupIdSwap).length === 0}>Apply</Button> */}
         </Box>
     </>;
 }

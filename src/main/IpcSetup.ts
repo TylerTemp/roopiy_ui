@@ -3,7 +3,7 @@ import ProjectType from '~s/Types/Project';
 import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
 import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig } from './Project';
-import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib, UpdateFrameFaces } from './Edit';
+import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib, UpdateFrameFaces, GenerateProject } from './Edit';
 import { UpdateFrameFaceType } from './Edit/Types';
 import { IdentifyFaces } from './Utils/Face';
 import { Close } from './Utils/DB/Database';
@@ -78,6 +78,13 @@ export default (ipcMain: IpcMain): void => {
                 const [_, channelName, projectFolder, bulkChanges] = args;
                 return UpdateFrameFaces(projectFolder as string, bulkChanges as UpdateFrameFaceType[], (cur: number) => {
                     event.sender.send(channelName, cur);
+                });
+            }
+            case Channel.Edit.v.GenerateProject:
+            {
+                const [_, channelName, projectFolder] = args;
+                return GenerateProject(projectFolder as string, (cur: number, total: number, text: string) => {
+                    event.sender.send(channelName, cur, total, text);
                 });
             }
             default:

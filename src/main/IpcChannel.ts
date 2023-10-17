@@ -25,6 +25,8 @@ export default {
             SaveFaceLib: 'SaveFaceLib',
             UpdateFrameFaces: 'UpdateFrameFaces',
             UpdateFrameFacesEvent: 'Edit.UpdateFrameFaces.Event',
+            GenerateProject: 'GenerateProject',
+            GenerateProjectEvent: 'Edit.GenerateProject.Event',
         }
     },
     Util: {

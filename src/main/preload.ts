@@ -49,29 +49,33 @@ const electronHandler = {
                 console.log(`invoke`, Channel.Project.k, Channel.Project.v.GetVideoSeconds, videoFile);
                 return ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.GetVideoSeconds, videoFile) as Promise<number>;
             },
-            // OnFolderImageCount: (folder: string, callback: (count:number) => void): (() => void) => {
-            //     const channelName = `${Channel.project.v.OnFolderImageCountChannel}.${folder}`;
-
-            //     ipcRenderer.on(channelName, (_event: IpcRendererEvent, count: number) => {
-            //         callback(count);
-            //     });
-            //     ipcRenderer.send(Channel.project.k, Channel.project.v.OnFolderImageCount, folder);
-            //     return () => {
-            //         ipcRenderer.removeListener(channelName, callback);
-            //     };
-            // }
-            ExtractVideo: (folder: string, config: ProjectType, callback: (count:number) => void): Promise<void> => {
+            CutVideoAsSource: (projectFolder: string, config: ProjectType, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
+                const channelName = `${Channel.Project.v.CutVideoAsSourceEvent}.${projectFolder}`;
+                console.log(`setup channel ${channelName}`)
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, cur: number, total: number, text: string) => {
+                    callback(cur, total, text);
+                });
+                return (ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.CutVideoAsSource,
+                    channelName,
+                    projectFolder,
+                    config) as Promise<string>)
+                    .then(r => {
+                        ipcRenderer.removeListener(channelName, callback);
+                        return r;
+                    });
+            },
+            ExtractVideo: (folder: string, config: ProjectType, callback: (cur: number, total: number, text: string) => void): Promise<void> => {
                 const channelName = `${Channel.Project.v.ExtractVideoEvent}.${folder}`;
 
                 console.log(`setup channel ${channelName}`)
-                ipcRenderer.on(channelName, (_event: IpcRendererEvent, count: number, end: boolean) => {
-                    callback(count);
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, cur: number, total: number, text: string) => {
+                    callback(cur, total, text);
                 });
 
                 return ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.ExtractVideo,
                     channelName,
                     folder,
-                    JSON.stringify(config))
+                    config)
                 .then(() => ipcRenderer.removeListener(channelName, callback)) as Promise<void>;
             },
 

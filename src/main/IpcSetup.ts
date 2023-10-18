@@ -2,7 +2,7 @@ import type { IpcMain } from 'electron';
 import ProjectType from '~s/Types/Project';
 import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
-import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig } from './Project';
+import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig, CutVideoAsSource } from './Project';
 import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib, UpdateFrameFaces, GenerateProject } from './Edit';
 import { UpdateFrameFaceType } from './Edit/Types';
 import { IdentifyFaces } from './Utils/Face';
@@ -18,14 +18,22 @@ export default (ipcMain: IpcMain): void => {
                 return GetConfig(args[1]);
             case Channel.Project.v.GetVideoSeconds:
                 return GetVideoSeconds(args[1]);
+            case Channel.Project.v.CutVideoAsSource:
+            {
+                const [_, channelName, projectFolder, config] = args;
+                return CutVideoAsSource(projectFolder as string, config as ProjectType, (cur: number, total: number, text: string) => {
+                    // console.log(`emit ${channelName} ${count}`)
+                    event.sender.send(channelName, cur, total, text);
+                });
+            }
             case Channel.Project.v.ExtractVideo:
             {
-                const [_, channelName, folder, projectTypeStr] = args;
+                const [_, channelName, folder, projectType] = args;
                 const result: Promise<void> = ExtractVideo(folder,
-                    JSON.parse(projectTypeStr) as ProjectType,
-                    (count: number) => {
+                    projectType,
+                    (cur:number, total: number, text: string) => {
                         // console.log(`emit ${channelName} ${count}`)
-                        event.sender.send(channelName, count);
+                        event.sender.send(channelName, cur, total, text);
                     });
                 return result;
             }

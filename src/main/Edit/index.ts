@@ -288,6 +288,16 @@ interface SourceTargetJson {
 export const GenerateProject = async (projectFolder: string, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
 
+    const configInfo = db.prepare("SELECT key, value FROM config WHERE key='sourceVideoToUse' OR key='sourceVideoAbs'").all() as {key: string, value: string}[];
+
+    const configMap = new Map<string, string>(configInfo.map(({key, value}) => [key, value]));
+    const sourceVideoToUse = JSON.parse(configMap.get('sourceVideoToUse')!) as string;
+    const sourceVideoAbs = JSON.parse(configMap.get('sourceVideoAbs')!) as boolean;
+
+    const mp4SourcePath = sourceVideoAbs
+        ? sourceVideoToUse
+        : join(ProjectsRoot, projectFolder, sourceVideoToUse);
+
     callback(-1, -1, `loading faceLib`);
 
     const allFaceLib = db.prepare('SELECT * FROM faceLib').all() as FaceLibType[];
@@ -391,7 +401,6 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
 
     callback(-1, -1, `merge audio`);
     const mp4Path = join(ProjectsRoot, projectFolder, 'output.mp4');
-    const mp4SourcePath = join(ProjectsRoot, projectFolder, 'source.mp4');
     const audioArgs = [
         '-hide_banner',
         '-loglevel', 'error',

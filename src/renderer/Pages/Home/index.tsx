@@ -4,7 +4,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from '@mui/material/Checkbox';
 import enqueueSnackbar from "~/Utils/enqueueSnackbar";
@@ -17,49 +17,32 @@ import { useNavigate } from "react-router-dom";
 import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
 import Style from './index.scss'
 import FileTextField from './FileTextField';
+import { ParseFFmpegTime } from "~s/Util";
 
 
-const ParseFFmpegTime = (timeStr: string): number => {
-    const floatPart: string = timeStr.includes('.') ? timeStr.split('.')[1] : '';
-    let totalSeconds: number;
-
-    const parts: string[] = timeStr.split(':');
-
-    let hours: string | undefined;
-    let minutes: string | undefined;
-    let seconds: string | undefined;
-
-    if (parts.length === 3) {
-        [hours, minutes, seconds] = parts;
-        totalSeconds = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-    } else if (parts.length === 2) {
-        [minutes, seconds] = parts;
-        totalSeconds = parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-    } else if (parts.length === 1) {
-        totalSeconds = parseInt(parts[0], 10);
-        console.log(`parsed: ${parts} -> ${totalSeconds}${floatPart}`);
-    } else {
-        throw new Error(`Invalid time string: ${timeStr}`);
+function assertIsError(error: unknown): asserts  error is Error {
+    // if you have nodejs assert:
+    // assert(error instanceof Error);
+    // otherwise
+    if (!(error instanceof Error)) {
+        throw error
     }
-
-    console.assert(!Number.isNaN(totalSeconds), `totalSeconds is NaN: ${timeStr}`);
-    const floatValue: number = (floatPart ? parseFloat(`0.${floatPart}`) : 0);
-    console.assert(!Number.isNaN(floatValue), `floatValue is NaN: ${floatPart}`);
-
-    return totalSeconds + floatValue;
 }
-
 
 const emptyProject: ProjectEdit = {
     referenceVideoFile: '',
-    referenceVideoSlice: false,
+    referenceVideoSlice: true,
     referenceVideoFrom: '0',
     referenceVideoTo: '',
     sourceVideoFile: 'source.mp4',
+
+    sourceVideoToUse: undefined,
+    sourceVideoExtracted: false,
+    sourceVideoFaceIdentified: false,
 };
 
 
-const ProjecetToEdit = ({referenceVideoFrom, referenceVideoDuration, referenceVideoSlice, ...left}: ProjectType): ProjectEdit => ({
+const ConvertProjecetToEdit = ({referenceVideoFrom, referenceVideoDuration, referenceVideoSlice, ...left}: ProjectType): ProjectEdit => ({
     ...left,
     referenceVideoSlice,
     referenceVideoFrom: referenceVideoSlice? referenceVideoFrom!.toString(): emptyProject.referenceVideoFrom,
@@ -79,7 +62,7 @@ export default () => {
 
     const [projectFolderList, setProjectFolderList] = useState<string[]>([]);
 
-    const { getPromise, addCache } = usePromiseCache<ProjectEdit>();
+    const { getPromise, addCache } = usePromiseCache<ProjectType>();
 
     useEffect(() => {
         window.electron.ipcRenderer.Project.GetList().then(setProjectFolderList);
@@ -87,6 +70,13 @@ export default () => {
 
     const [selectedProjectFolder, setSelectedProjectFolder] = useState<string>('');
     const [projectEdit, setProjectEdit] = useState<ProjectEdit>(emptyProject);
+    const oriProjectInfo = useRef<ProjectType>(({
+        ...emptyProject,
+        referenceVideoFrom: 0,
+        referenceVideoDuration: 0,
+        sourceVideoToUse: '',
+        sourceVideoAbs: true,
+    }));
 
     const isNewProject = useMemo(() => !projectFolderList.includes(selectedProjectFolder), [projectFolderList, selectedProjectFolder]);
 
@@ -99,11 +89,15 @@ export default () => {
         getPromise(
             projectFolder,
             () => window.electron.ipcRenderer.Project.GetConfig(projectFolder)
-                .then(ProjecetToEdit)
+                // .then(result => {
+                //     oriProjectInfo.current = result;
+                //     return ConvertProjecetToEdit(result);
+                // })
         )
         .then(result => {
             console.log(`getPromise ${projectFolder} result`, result);
-            setProjectEdit(result);
+            oriProjectInfo.current = result;
+            setProjectEdit(ConvertProjecetToEdit(result));
         });
     }
 
@@ -112,7 +106,7 @@ export default () => {
         navigate(`/edit/${selectedProjectFolder}`);
     }
 
-    const CreateProject = () => {
+    const CreateProject = async () => {
         const {referenceVideoSlice, referenceVideoFrom, referenceVideoTo, ...left} = projectEdit;
         if (referenceVideoSlice && (referenceVideoFrom === '' && referenceVideoTo === '')) {
             enqueueSnackbar('Invalid slice time', 'error');
@@ -129,60 +123,203 @@ export default () => {
                 : ParseFFmpegTime(referenceVideoTo) - referenceVideoFromSeconds;
         }
 
+        const oriProject = oriProjectInfo.current;
+
         let project: ProjectType = {
+            ...oriProject,
             ...left,
             referenceVideoSlice,
             referenceVideoFrom: referenceVideoFromSeconds,
             referenceVideoDuration,
         }
 
-        setLoading({loading: true, loadingText: 'Extracting video', loadingProgress: -1});
-        window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
-            .then((seconds: number) => {
-                console.log(seconds);
-                if(referenceVideoSlice && referenceVideoDuration! <= 0) {
-                    project = {...project, referenceVideoDuration: (seconds - referenceVideoFromSeconds!)}
+        setLoading({loading: true, loadingText: 'Save Config', loadingProgress: -1});
+        try {
+            await window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
+        } catch (err) {
+            console.error(err);
+            assertIsError(err)
+            enqueueSnackbar(err.message, 'error');
+            setLoading({loading: false, loadingText: null, loadingProgress: -1});
+            return;
+        }
+
+        const reportProgress = (cur: number, total: number, text: string): void => setLoading(prev => ({
+            ...prev,
+            loadingProgress: total > 0? cur / total: -1,
+            loadingText: text,
+        }));
+
+        const sourceVideoConfigChanged = project.referenceVideoSlice !== oriProject.referenceVideoSlice
+            || project.referenceVideoFrom !== oriProject.referenceVideoFrom
+            || project.referenceVideoDuration !== oriProject.referenceVideoDuration
+            || project.referenceVideoFile !== oriProject.referenceVideoFile;
+
+        if(sourceVideoConfigChanged) {
+            project.sourceVideoExtracted = false;
+            project.sourceVideoFaceIdentified = false;
+        }
+
+        if(sourceVideoConfigChanged) {
+
+            setLoading({loading: true, loadingText: 'Copy source', loadingProgress: -1});
+
+            if(project.referenceVideoSlice) {
+
+
+                try {
+                    await window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
+                        .then((seconds: number) => {
+                            console.log(seconds);
+                            if(referenceVideoSlice && referenceVideoDuration! <= 0) {
+                                project = {...project, referenceVideoDuration: (seconds - referenceVideoFromSeconds!)}
+                            }
+                            if(referenceVideoSlice) {
+                                if(project.referenceVideoFrom! > seconds) {
+                                    throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) > duration(${seconds})`);
+                                }
+                                if(project.referenceVideoFrom! + project.referenceVideoDuration! > seconds) {
+                                    throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) + duration(${project.referenceVideoDuration}) > duration(${seconds})`);
+                                }
+                            }
+                            return window.electron.ipcRenderer.Project.CutVideoAsSource(selectedProjectFolder, project, reportProgress);
+                        })
+                        .then(r => {
+                            setLoading(prev => ({...prev, loadingProgress: -1, loadingText: `Saving config for ${r}`}));
+                            return r;
+                        })
+                        .then(sourceVideoToUse => {
+                            project.sourceVideoToUse = sourceVideoToUse;
+                            project.sourceVideoAbs = false;
+                            return window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
+                        });
+                } catch (err) {
+                    console.error(err);
+                    assertIsError(err)
+                    enqueueSnackbar(err.message, 'error');
+                    setLoading({loading: false, loadingText: null, loadingProgress: -1});
+                    return;
                 }
-                if(referenceVideoSlice) {
-                    if(project.referenceVideoFrom! > seconds) {
-                        throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) > duration(${seconds})`);
-                    }
-                    if(project.referenceVideoFrom! + project.referenceVideoDuration! > seconds) {
-                        throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) + duration(${project.referenceVideoDuration}) > duration(${seconds})`);
-                    }
+            }
+            else
+            {
+                project.sourceVideoToUse = project.referenceVideoFile;
+                project.sourceVideoAbs = true;
+                setLoading(prev => ({...prev, loadingProgress: -1, loadingText: `Saving config for ${project.referenceVideoFile}`}));
+
+                try {
+                    await window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
+                } catch (err) {
+                    console.error(err);
+                    assertIsError(err)
+                    enqueueSnackbar(err.message, 'error');
+                    setLoading({loading: false, loadingText: null, loadingProgress: -1});
+                    return;
                 }
-                const duration = referenceVideoSlice? project.referenceVideoDuration!: seconds;
-                const estimateImageCount = Math.round(duration * 30);
-                return window.electron.ipcRenderer.Project.ExtractVideo(
+            }
+        }
+
+        if(!project.sourceVideoExtracted) {
+            setLoading({loading: true, loadingText: 'Extracting video', loadingProgress: -1});
+            try {
+                await window.electron.ipcRenderer.Project.ExtractVideo(
                     selectedProjectFolder,
                     project,
-                    // value => console.log(`frame:`, value, estimateImageCount),
-                    value => setLoading({loading: true, loadingText: `Extracting video: ${value}/${estimateImageCount}`, loadingProgress: value / estimateImageCount}),
+                    reportProgress,
                 );
-            })
-
-            .then(() => setLoading({loading: true, loadingText: 'Extracting faces', loadingProgress: -1}))
-            .then(() => window.electron.ipcRenderer.Project.ExtractFacesInProject(
-                selectedProjectFolder,
-                (curCount: number, totalCount: number, faceCount: number, name: string)=> setLoading({
-                    loading: true,
-                    loadingText: `Extracting faces: ${curCount}/${totalCount} ${name} (${faceCount} faces)`,
-                    loadingProgress: curCount / totalCount
-                })
-            ))
-
-            .then(() => {
-                setLoading({loading: true, loadingText: 'Saving project', loadingProgress: -1});
-                return window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
-            })
-            .then(() => addCache(selectedProjectFolder, ProjecetToEdit(project)))
-            .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))
-            .then(CloseThenNavigateToProject)
-            .catch(err => {
+                project.sourceVideoExtracted = true;
+                project.sourceVideoFaceIdentified = false;
+                await window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
+            } catch (err) {
                 console.error(err);
-                setLoading({loading: false, loadingText: null, loadingProgress: -1});
+                assertIsError(err)
                 enqueueSnackbar(err.message, 'error');
-            });
+                setLoading({loading: false, loadingText: null, loadingProgress: -1});
+                return;
+            }
+        }
+
+        if(!project.sourceVideoFaceIdentified) {
+            setLoading({loading: true, loadingText: 'Identify faces', loadingProgress: -1});
+            try {
+                await window.electron.ipcRenderer.Project.ExtractFacesInProject(
+                    selectedProjectFolder,
+                    (curCount: number, totalCount: number, faceCount: number, name: string)=> setLoading(prev => ({
+                        ...prev,
+                        loadingText: `Extracting faces: ${curCount}/${totalCount} ${name} (${faceCount} faces)`,
+                        loadingProgress: curCount / totalCount
+                    }))
+                );
+                project.sourceVideoFaceIdentified = true;
+                await window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
+            } catch (err) {
+                console.error(err);
+                assertIsError(err)
+                enqueueSnackbar(err.message, 'error');
+                setLoading({loading: false, loadingText: null, loadingProgress: -1});
+                return;
+            }
+        }
+
+        addCache(selectedProjectFolder, project);
+        setProjectEdit(ConvertProjecetToEdit(project));
+        setLoading({loading: false, loadingText: null, loadingProgress: -1});
+        CloseThenNavigateToProject();
+        // .then(() => addCache(selectedProjectFolder, ConvertProjecetToEdit(project)))
+        // .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))
+        // .then(CloseThenNavigateToProject)
+        // .catch(err => {
+        //     console.error(err);
+        //     setLoading({loading: false, loadingText: null, loadingProgress: -1});
+        //     enqueueSnackbar(err.message, 'error');
+        // });
+
+        // window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
+        //     .then((seconds: number) => {
+        //         console.log(seconds);
+        //         if(referenceVideoSlice && referenceVideoDuration! <= 0) {
+        //             project = {...project, referenceVideoDuration: (seconds - referenceVideoFromSeconds!)}
+        //         }
+        //         if(referenceVideoSlice) {
+        //             if(project.referenceVideoFrom! > seconds) {
+        //                 throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) > duration(${seconds})`);
+        //             }
+        //             if(project.referenceVideoFrom! + project.referenceVideoDuration! > seconds) {
+        //                 throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) + duration(${project.referenceVideoDuration}) > duration(${seconds})`);
+        //             }
+        //         }
+        //         const duration = referenceVideoSlice? project.referenceVideoDuration!: seconds;
+        //         const estimateImageCount = Math.round(duration * 30);
+        //         return window.electron.ipcRenderer.Project.ExtractVideo(
+        //             selectedProjectFolder,
+        //             project,
+        //             // value => console.log(`frame:`, value, estimateImageCount),
+        //             value => setLoading({loading: true, loadingText: `Extracting video: ${value}/${estimateImageCount}`, loadingProgress: value / estimateImageCount}),
+        //         );
+        //     })
+
+        //     .then(() => setLoading({loading: true, loadingText: 'Extracting faces', loadingProgress: -1}))
+        //     .then(() => window.electron.ipcRenderer.Project.ExtractFacesInProject(
+        //         selectedProjectFolder,
+        //         (curCount: number, totalCount: number, faceCount: number, name: string)=> setLoading({
+        //             loading: true,
+        //             loadingText: `Extracting faces: ${curCount}/${totalCount} ${name} (${faceCount} faces)`,
+        //             loadingProgress: curCount / totalCount
+        //         })
+        //     ))
+
+        //     .then(() => {
+        //         setLoading({loading: true, loadingText: 'Saving project', loadingProgress: -1});
+        //         return window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
+        //     })
+        //     .then(() => addCache(selectedProjectFolder, ConvertProjecetToEdit(project)))
+        //     .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))
+        //     .then(CloseThenNavigateToProject)
+        //     .catch(err => {
+        //         console.error(err);
+        //         setLoading({loading: false, loadingText: null, loadingProgress: -1});
+        //         enqueueSnackbar(err.message, 'error');
+        //     });
     };
 
     // useEffect(() => {

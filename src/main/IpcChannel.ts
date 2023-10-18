@@ -6,6 +6,8 @@ export default {
             GetConfig: 'GetConfig',
             // CreateConfig: 'CreateConfig',
             GetVideoSeconds: 'GetVideoSeconds',
+            CutVideoAsSource: 'CutVideoAsSource',
+            CutVideoAsSourceEvent: 'Project.CutVideoAsSource.Event',
             ExtractVideo: 'ExtractVideo',
             ExtractVideoEvent: 'Project.ExtractVideo.Event',
             ExtractFacesInProject: 'ExtractFacesInProject',

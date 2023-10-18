@@ -79,6 +79,7 @@ export default ({projectFolder, frameFaces, faceLibFaces, setFrameFaces, selecte
     const [positionDistance, setPositionDistance] = useState<number>(0.5);
     const [selectedFaceIndex, setSelectedFaceIndex] = useState<number>(0);
     const [groupIdSwap, setGroupIdSwap] = useState<NumberKV>({});
+
     useEffect(() => {
         setSelectedFaceIndex(0);
     }, [selectedFaceIndex]);
@@ -217,6 +218,20 @@ export default ({projectFolder, frameFaces, faceLibFaces, setFrameFaces, selecte
 
     }, [frameFaces, selectedFrameIndex, selectedFaceIndex]);
 
+    const previewFrameSwap = () => {
+        const {filePath, faces} = frameFaces[selectedFrameIndex];
+        window.electron.ipcRenderer.Edit.PreviewFrameSwap(projectFolder, {
+            filePath,
+            swapInfo: faces.map(({face: source, faceLibId}) => ({
+                source,
+                target: faceLibFaces.find(each => each.id === faceLibId)!.face,
+            }))
+        })
+        .then(swappedToPath => setFrameFaces(prev => prev.map(each => each.filePath === filePath
+            ? {...each, swappedToPath}
+            : each)));
+    }
+
     return <>
         <Stack direction="row">
             <Select
@@ -268,7 +283,7 @@ export default ({projectFolder, frameFaces, faceLibFaces, setFrameFaces, selecte
                 checkGroupIds={selectedSwapFaceLibIds}
                 onSwapChanged={applyFaceSwap}
             />
-            {/* <Button onClick={applyGroupIdSwap} disabled={Object.keys(groupIdSwap).length === 0}>Apply</Button> */}
+            <Button onClick={previewFrameSwap}>Preview This Frame</Button>
         </Box>
     </>;
 }

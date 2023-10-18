@@ -23,37 +23,12 @@ interface Props {
 }
 
 
-
-
 export default ({projectFolder, allFaces, checkGroupIds, onSwapChanged}: Props) => {
-
-    // const setSwapGroup = (groupId: number, newFaceId: number | null) => {
-    //     setSwapGroupMap((oldMap): Map<number, number | null> => {
-    //         const oldValue = oldMap.get(groupId);
-
-    //         if(oldValue === newFaceId) {
-    //             return oldMap;
-    //         }
-
-    //         const newMap = new Map<number, number | null>(oldMap.entries());
-
-    //         newMap.set(groupId, newFaceId);
-
-    //         onSwapChanged(Object.fromEntries(newMap.entries()));
-
-    //         return newMap;
-    //     });
-    // }
-
-
     return <>
         {[...checkGroupIds.entries()]
             .sort(([key1, _value1], [key2, _value2]) => key1 - key2)
             .map(([groupId, libFaceIds]: [number, number[]]) => {
-            // console.log(`groupId: ${groupId} get`, swapGroupMap.get(groupId));
             const swapFaceIds = checkGroupIds.get(groupId) || [];
-            // const faceLib = allFaces.find(each => each.id === swapGroupId);
-            // const selectedValue = faceLib?.id?.toString() ?? '';
             const selectedValue = swapFaceIds.length === 1? swapFaceIds[0].toString(): '';
 
             return <Fragment key={groupId}>

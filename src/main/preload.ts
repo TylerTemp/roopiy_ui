@@ -161,6 +161,18 @@ const electronHandler = {
                         ipcRenderer.removeListener(channelName, callback);
                         return r;
                     });
+            },
+            PreviewFrameSwap: (projectFolder: string, swap: {
+                    filePath: string,
+                    swapInfo: {
+                        source: Face,
+                        target: Face,
+                    }[],
+                }): Promise<string> => {
+                const result = ipcRenderer.invoke(Channel.Edit.k, Channel.Edit.v.PreviewFrameSwap,
+                    projectFolder, swap);
+                console.assert(result !== null);
+                return result as Promise<string>;
             }
         },
 

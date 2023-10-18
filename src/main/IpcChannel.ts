@@ -29,6 +29,7 @@ export default {
             UpdateFrameFacesEvent: 'Edit.UpdateFrameFaces.Event',
             GenerateProject: 'GenerateProject',
             GenerateProjectEvent: 'Edit.GenerateProject.Event',
+            PreviewFrameSwap: 'PreviewFrameSwap',
         }
     },
     Util: {

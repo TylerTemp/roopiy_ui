@@ -429,3 +429,24 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
 
     return Promise.resolve(mp4Path);
 }
+
+export interface FrameTypePreview {
+    filePath: string,
+    swapInfo: {
+        source: Face,
+        target: Face,
+    }[],
+}
+
+export const PreviewFrameSwap = (projectFolder: string, {filePath, swapInfo}: FrameTypePreview): Promise<string> => {
+    const swapFile = join('swap', filePath.replaceAll('frames/', ''));
+    const swapToPath = join(ProjectsRoot, projectFolder, swapFile);
+    const sourcePath = join(ProjectsRoot, projectFolder, filePath);
+
+    return roopiy.Send(JSON.stringify({
+        'source_image_path': sourcePath,
+        'target_image_path': swapToPath,
+        'swap_info': swapInfo,
+    }))
+        .then(() => swapFile);
+}

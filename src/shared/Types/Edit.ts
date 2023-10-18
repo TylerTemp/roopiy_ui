@@ -12,4 +12,5 @@ export interface FrameFaces {
     faces: FrameFace[],
     width: number,
     height: number,
+    swappedToPath: string | null,
 }

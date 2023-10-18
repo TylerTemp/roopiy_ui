@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import RetryErrorSuspense, { RendererProps } from "~/Components/RetryErrorSuspense";
 import { FrameFace } from "~s/Types/Edit";
@@ -18,6 +18,8 @@ import FaceLib, { type FaceLibType } from "./FaceLib";
 import Style from "./index.scss";
 import ImageFullDraw from "./ImageFullDraw";
 import { FrameFacesEdited } from "./Face";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 
 
 const PickColor = (num: number, colors: CssColorMust[]): CssColorMust => colors[num % colors.length];
@@ -62,6 +64,8 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
         loadingProgress: -1,
     });
 
+    const [previewFirst, setPreviewFirst] = useState<boolean>(true);
+
     const [cachedFrameFaces, setCachedFrameFaces] = useState<FrameFacesEdited[]>(frameFaces);
     const [cacheFaceLibFaces, setCacheFaceLibFaces] = useState<FaceLibType[]>(faceLibFaces);
 
@@ -79,7 +83,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
         return [new1, new2];
     });
 
-    const {filePath: frameFile, faces, width, height} = cachedFrameFaces[selectedFrameIndex];
+    const {filePath: frameFile, swappedToPath, faces, width, height} = cachedFrameFaces[selectedFrameIndex];
 
     const { colorPlattes } = useTheme();
 
@@ -164,7 +168,9 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
 
         <Stack gap={2} className={Style.mainContainer}>
             <ImageFullDraw
-                src={`project://${projectFolder}/${frameFile}`}
+                src={`project://${projectFolder}/${previewFirst
+                    ? (swappedToPath ?? frameFile)
+                    : frameFile}`}
                 width={width}
                 height={height}
                 drawInfos={faces.map((eachFace: FrameFace) => ({
@@ -172,6 +178,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
                     text: eachFace.faceLibId? `${eachFace.groupId}|${cacheFaceLibFaces.find(each => each.id === eachFace.faceLibId)!.alias}`: `${eachFace.groupId}`,
                     color: PickColor(eachFace.groupId, colorPlattes),
                 }))} />
+            <FormControlLabel control={<Checkbox color={swappedToPath? 'success': 'primary'} checked={previewFirst} onChange={({target: {checked}}: ChangeEvent<HTMLInputElement>) => setPreviewFirst(checked)} />} label="Preview First" />
             <Typography variant="caption" className={Style.textCenter}>{frameFile}[{faces.length}]</Typography>
 
             <GroupDrawer

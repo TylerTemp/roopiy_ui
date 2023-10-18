@@ -48,26 +48,25 @@ CREATE INDEX frameFilePath_frameFilePath ON frameFace (frameFilePath ASC);
 `;
 
 
-const GetOrCreateDatabase = (key: string, asFile: boolean): Sqlite.Database => {
+const GetOrCreateDatabase = (key: string): Sqlite.Database => {
     if(!dbMap[key]) {
         const options = {
             verbose: console.log,
-            fileMustExist: asFile
+            // fileMustExist: asFile
         };
-        const dbTarget = asFile? key: ":memory:";
-        console.log(`open db ${dbTarget}(${key})`, options);
-        if(asFile) {
-            const dirName = dirname(key);
-            if(!existsSync(dirName)) {
-                console.log(`create dir ${dirName}`);
-                mkdirSync(dirName, { recursive: true});
-            }
+        // const dbTarget = asFile? key: ":memory:";
+        console.log(`open db ${key}`, options);
+        const dirName = dirname(key);
+        if(!existsSync(dirName)) {
+            console.log(`create dir ${dirName}`);
+            mkdirSync(dirName, { recursive: true});
         }
-        const db = new Sqlite(dbTarget, options);
-        if(!asFile) {
-            console.log(`console.log(db.serialize());`)
 
-            db.serialize();
+        const fileExists = existsSync(key);
+        const db = new Sqlite(key, options);
+        if(!fileExists) {
+            // console.log(`console.log(db.serialize());`)
+            // db.serialize();
 
             console.log(`init tables`);
             db.exec(CreateTables());

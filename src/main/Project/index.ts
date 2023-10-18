@@ -2,15 +2,13 @@ import { readdirSync, existsSync, mkdirSync, type Dirent, rmSync } from 'fs';
 import { spawn, spawnSync } from 'child_process';
 import { extname, join } from 'path';
 import type ProjectType from '~s/Types/Project';
-import type ApiPrepareProject from '~m/Project/ApiPrepareProject';
-import WebSocket from 'ws';
 // import { type FrameFaces } from '~s/Types/Edit';
 import ImageSize from 'image-size';
-import {ProjectsRoot, WrapperHost} from '../Utils/Config';
+import {ProjectsRoot} from '../Utils/Config';
 import { IdentifyFaces } from '../Utils/Face';
-import Database, { Close } from '../Utils/DB/Database';
+import Database from '../Utils/DB/Database';
 import { type FrameType, type FrameFaceType } from '../Utils/DB/Types';
-import { ParseFFmpegTime } from "~s/Util";
+import { ParseFFmpegTime } from "../../shared/Util";
 
 
 export const GetList = (): string[] => {
@@ -26,7 +24,7 @@ export const GetList = (): string[] => {
 export const GetConfig = (projectFolder: string): ProjectType => {
     const filePath = join(ProjectsRoot, projectFolder, 'config.db');
     console.log(`reading config`, filePath);
-    const db = Database(filePath, true);
+    const db = Database(filePath);
     const results = db.prepare('SELECT * FROM config').all() as {key: keyof ProjectType, value: string}[];
     const projectAcc: Partial<ProjectType> = {};
     results.forEach(({key, value: jsonStr}) => {
@@ -58,8 +56,11 @@ export const GetVideoSeconds = (videoFile: string): number => {
 
 
 export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, referenceVideoFrom, referenceVideoDuration}: ProjectType, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
-    const [_, fileExt] = extname(referenceVideoFile);
-    const targetFileName = `target.${fileExt}`;
+    const fileExt = extname(referenceVideoFile);
+    const targetFileName = `target${fileExt}`;
+
+    console.log(`CutVideoAsSource`, referenceVideoFile, referenceVideoFrom, referenceVideoDuration, targetFileName);
+
     return new Promise<string>((resolve, reject) => {
         const ffmpeg = spawn('ffmpeg', [
             '-hide_banner',
@@ -68,6 +69,7 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
             `${referenceVideoFrom}`,
             '-hwaccel',
             'auto',
+            '-progress', 'pipe:1',
             '-i',
             referenceVideoFile,
             '-acodec',
@@ -77,15 +79,17 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
             '-to',
             `${referenceVideoDuration}`,
             join(ProjectsRoot, projectFolder, targetFileName),
-        ], { stdio: 'pipe', shell: false });
+        ]);
 
         ffmpeg.stdout.on('data', (data) => {
             // Process the ffmpeg output here, e.g., check for the "time" line and extract the progress information.
             const output = data.toString();
+            // console.log(`CutVideoAsSource ffmpeg output: ${output}`);
+
             const timeLine = /time=([^\s]+)/.exec(output);
             if (timeLine) {
                 const currentTimeStr = timeLine[1];
-                console.log('Current Time:', currentTimeStr);
+                console.log('CutVideoAsSource Current Time:', currentTimeStr);
                 const currentTime = ParseFFmpegTime(currentTimeStr);
                 callback(currentTime, referenceVideoDuration as number, `${currentTimeStr} ${referenceVideoFile}`)
             }
@@ -93,16 +97,16 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
 
         ffmpeg.stderr.on('data', (data) => {
             // Process ffmpeg error output, if needed.
-            console.error(data.toString());
+            // console.error(`CutVideoAsSource ERROR:`, data.toString());
         });
 
         ffmpeg.on('close', (code) => {
-            console.log(`ffmpeg process exited with code ${code}`);
+            console.log(`CutVideoAsSource ffmpeg process exited with code ${code}`);
             if(code === 0) {
                 resolve(targetFileName);
             }
             else {
-                reject(new Error(`ffmpeg exit with code ${code}`));
+                reject(new Error(`CutVideoAsSource ffmpeg exit with code ${code}`));
             }
         });
     });
@@ -110,17 +114,8 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
 
 
 export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, referenceVideoSlice, referenceVideoDuration}: ProjectType, callback: (cur:number, total: number, text: string) => void): Promise<void> => {
-    // 'ffmpeg',
-    // '-hide_banner',
-    // '-loglevel', 'error',
-    // '-y'
-    // -ss, time
-    // '-hwaccel', 'auto',
-    // '-i', target_path,
-    // -acodec copy -vcodec copy
-    // '-to', to
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
-    const fileDir = join(ProjectsRoot, projectFolder);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
+    const fileDir = join(ProjectsRoot, projectFolder, 'frames');
     if(existsSync(fileDir)) {
         console.log(`purge dir ${fileDir}`);
         rmSync(fileDir, {recursive: true, force: true});
@@ -141,6 +136,7 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, reference
             '-y',
             '-hwaccel',
             'auto',
+            '-progress', 'pipe:1',
             '-i',
             sourceVideoToUse,
             join(ProjectsRoot, projectFolder, 'frames', '%06d.png'),
@@ -150,9 +146,10 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, reference
             // Process the ffmpeg output here, e.g., check for the "time" line and extract the progress information.
             const output = data.toString();
             const timeLine = /time=([^\s]+)/.exec(output);
+            // console.log(`get output: ${output}, match: ${timeLine}`);
             if (timeLine) {
                 const currentTimeStr = timeLine[1];
-                console.log('Current Time:', currentTimeStr);
+                console.log('ExtractVideo Current Time:', currentTimeStr);
                 const currentTime = ParseFFmpegTime(currentTimeStr);
                 callback(currentTime, totalDuration, `${currentTimeStr} ${sourceVideoToUse}`)
             }
@@ -160,18 +157,18 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, reference
 
         ffmpeg.stderr.on('data', (data) => {
             // Process ffmpeg error output, if needed.
-            console.error(data.toString());
+            // console.error(data.toString());
         });
 
         ffmpeg.on('close', (code) => {
-            console.log(`ffmpeg process exited with code ${code}`);
+            console.log(`ExtractVideo ffmpeg process exited with code ${code}`);
             if(code === 0) {
-                db.prepare('DELETE * FROM frame').run();
-                db.prepare('DELETE * FROM frameFace').run();
+                db.prepare('DELETE FROM frame').run();
+                db.prepare('DELETE FROM frameFace').run();
                 resolve();
             }
             else {
-                reject(new Error(`ffmpeg exit with code ${code}`));
+                reject(new Error(`ExtractVideo ffmpeg exit with code ${code}`));
             }
         });
     });
@@ -183,7 +180,7 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
     const images = readdirSync(rootPath, { withFileTypes: true })
         .filter(dirent => !dirent.isDirectory() && dirent.name.endsWith('.png'));
 
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), false);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
 
     for (let index = 0; index < images.length; index+=1) {
         const imageFile: Dirent = images[index];
@@ -251,7 +248,7 @@ export const SaveConfig = (projectFolder: string, config: ProjectType): void => 
 
     console.log(`writing config to ${filePath}`, config);
 
-    const db = Database(filePath, true);
+    const db = Database(filePath);
     const stmt = db.prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)');
     // eslint-disable-next-line no-restricted-syntax
     for (const [key, value] of Object.entries(config)) {

@@ -15,9 +15,9 @@ import type { ProjectEdit } from '~s/Types/Project';
 import Collapse from "@mui/material/Collapse";
 import { useNavigate } from "react-router-dom";
 import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
+import { ParseFFmpegTime } from "~s/Util";
 import Style from './index.scss'
 import FileTextField from './FileTextField';
-import { ParseFFmpegTime } from "~s/Util";
 
 
 function assertIsError(error: unknown): asserts  error is Error {
@@ -155,6 +155,8 @@ export default () => {
             || project.referenceVideoDuration !== oriProject.referenceVideoDuration
             || project.referenceVideoFile !== oriProject.referenceVideoFile;
 
+        console.log(`sourceVideoConfigChanged`, sourceVideoConfigChanged);
+
         if(sourceVideoConfigChanged) {
             project.sourceVideoExtracted = false;
             project.sourceVideoFaceIdentified = false;
@@ -165,8 +167,6 @@ export default () => {
             setLoading({loading: true, loadingText: 'Copy source', loadingProgress: -1});
 
             if(project.referenceVideoSlice) {
-
-
                 try {
                     await window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
                         .then((seconds: number) => {
@@ -239,6 +239,8 @@ export default () => {
             }
         }
 
+        console.log(`project.sourceVideoFaceIdentified`, project.sourceVideoFaceIdentified);
+
         if(!project.sourceVideoFaceIdentified) {
             setLoading({loading: true, loadingText: 'Identify faces', loadingProgress: -1});
             try {
@@ -265,79 +267,12 @@ export default () => {
         setProjectEdit(ConvertProjecetToEdit(project));
         setLoading({loading: false, loadingText: null, loadingProgress: -1});
         CloseThenNavigateToProject();
-        // .then(() => addCache(selectedProjectFolder, ConvertProjecetToEdit(project)))
-        // .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))
-        // .then(CloseThenNavigateToProject)
-        // .catch(err => {
-        //     console.error(err);
-        //     setLoading({loading: false, loadingText: null, loadingProgress: -1});
-        //     enqueueSnackbar(err.message, 'error');
-        // });
-
-        // window.electron.ipcRenderer.Project.GetVideoSeconds(project.referenceVideoFile)
-        //     .then((seconds: number) => {
-        //         console.log(seconds);
-        //         if(referenceVideoSlice && referenceVideoDuration! <= 0) {
-        //             project = {...project, referenceVideoDuration: (seconds - referenceVideoFromSeconds!)}
-        //         }
-        //         if(referenceVideoSlice) {
-        //             if(project.referenceVideoFrom! > seconds) {
-        //                 throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) > duration(${seconds})`);
-        //             }
-        //             if(project.referenceVideoFrom! + project.referenceVideoDuration! > seconds) {
-        //                 throw new Error(`Invalid slice time: from(${project.referenceVideoFrom}) + duration(${project.referenceVideoDuration}) > duration(${seconds})`);
-        //             }
-        //         }
-        //         const duration = referenceVideoSlice? project.referenceVideoDuration!: seconds;
-        //         const estimateImageCount = Math.round(duration * 30);
-        //         return window.electron.ipcRenderer.Project.ExtractVideo(
-        //             selectedProjectFolder,
-        //             project,
-        //             // value => console.log(`frame:`, value, estimateImageCount),
-        //             value => setLoading({loading: true, loadingText: `Extracting video: ${value}/${estimateImageCount}`, loadingProgress: value / estimateImageCount}),
-        //         );
-        //     })
-
-        //     .then(() => setLoading({loading: true, loadingText: 'Extracting faces', loadingProgress: -1}))
-        //     .then(() => window.electron.ipcRenderer.Project.ExtractFacesInProject(
-        //         selectedProjectFolder,
-        //         (curCount: number, totalCount: number, faceCount: number, name: string)=> setLoading({
-        //             loading: true,
-        //             loadingText: `Extracting faces: ${curCount}/${totalCount} ${name} (${faceCount} faces)`,
-        //             loadingProgress: curCount / totalCount
-        //         })
-        //     ))
-
-        //     .then(() => {
-        //         setLoading({loading: true, loadingText: 'Saving project', loadingProgress: -1});
-        //         return window.electron.ipcRenderer.Project.SaveConfig(selectedProjectFolder, project);
-        //     })
-        //     .then(() => addCache(selectedProjectFolder, ConvertProjecetToEdit(project)))
-        //     .then(() => setLoading({loading: false, loadingText: null, loadingProgress: -1}))
-        //     .then(CloseThenNavigateToProject)
-        //     .catch(err => {
-        //         console.error(err);
-        //         setLoading({loading: false, loadingText: null, loadingProgress: -1});
-        //         enqueueSnackbar(err.message, 'error');
-        //     });
     };
-
-    // useEffect(() => {
-    //     return () => window.electron.ipcRenderer.Util.CloseDatabase(selectedProjectFolder);
-    // }, []);
-
-    // console.log(isNewProject);
-    // const theme = useTheme();
 
     return <Box className={Style.overlayContainer}>
                 <form onSubmit={evt => {
                     evt.preventDefault();
-                    if(isNewProject) {
-                        CreateProject();
-                    }
-                    else {
-                        CloseThenNavigateToProject();
-                    }
+                    CreateProject();
                 }}>
                     <Stack gap={1}>
                     <Autocomplete
@@ -381,7 +316,7 @@ export default () => {
                     </Typography>
 
                     <FileTextField
-                        readOnly={!isNewProject}
+                        // readOnly={!isNewProject}
                         value={projectEdit.referenceVideoFile}
                         onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoFile: evt.target.value})}
                     />
@@ -389,8 +324,8 @@ export default () => {
                     <FormControlLabel
                         label="Slice"
                         control={<Checkbox
-                            readOnly={!isNewProject}
-                            disabled={!isNewProject}
+                            // readOnly={!isNewProject}
+                            // disabled={!isNewProject}
                             checked={projectEdit.referenceVideoSlice}
                             onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoSlice: evt.target.checked})}
                         />}
@@ -402,7 +337,7 @@ export default () => {
                                 fullWidth
                                 variant="standard"
                                 label="From"
-                                disabled={!isNewProject}
+                                // disabled={!isNewProject}
                                 error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
                                 value={projectEdit.referenceVideoFrom}
                                 onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoFrom: evt.target.value})}
@@ -411,7 +346,7 @@ export default () => {
                                 fullWidth
                                 variant="standard"
                                 label="To"
-                                disabled={!isNewProject}
+                                // disabled={!isNewProject}
                                 error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
                                 value={projectEdit.referenceVideoTo}
                                 onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoTo: evt.target.value})}

@@ -4,6 +4,7 @@ import ImageSize from 'image-size';
 import { type ISize } from 'image-size/dist/types/interface';
 import { copyFileSync, existsSync, mkdirSync } from "fs";
 import sharp from "sharp";
+import { spawnSync } from "child_process";
 import Face from "../../shared/Types/Face";
 import {ProjectsRoot, WrapperHost} from '../Utils/Config';
 import Database from '../Utils/DB/Database';
@@ -11,7 +12,6 @@ import {type FrameType, type FrameFaceType, type FaceLibType} from '../Utils/DB/
 import { GetRectFromFace, Rect } from "../../shared/Face";
 import { clamp } from "../../shared/Util";
 import { ParsedFaceLibType, UpdateFrameFaceType } from "./Types";
-import { spawnSync } from "child_process";
 
 export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
@@ -46,7 +46,7 @@ interface FrameNestedQueryType extends FrameType {
 }
 
 export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: number, total: number) => void): FrameFaces[] => {
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
     // id: number,
     // value: string,
     // groupId: number,
@@ -145,7 +145,7 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
 
 
 export const GetAllFacesInFaceLib = (projectFolder: string): ParsedFaceLibType[] => {
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
     const dbFaces = db.prepare('SELECT * FROM faceLib WHERE hide=0').all() as FaceLibType[];
     return dbFaces.map(({value, hide, ...left}: FaceLibType): ParsedFaceLibType => ({
         ...left,
@@ -209,7 +209,7 @@ const PandingRect = (fullWidth: number, fullHeight: number, {top, right, bottom,
 
 
 export const SaveFaceLib = async (projectFolder: string, face: Face, file: string, alias: string): Promise<ParsedFaceLibType> => {
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
     const ext = extname(file);
     const tagetFaceFolder = join(ProjectsRoot, projectFolder, 'faces');
     if (!existsSync(tagetFaceFolder)) {
@@ -264,7 +264,7 @@ export const SaveFaceLib = async (projectFolder: string, face: Face, file: strin
 
 
 export const UpdateFrameFaces = (projectFolder: string, buckChanges: UpdateFrameFaceType[], callback: (cur: number) => void): void => {
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
 
     for (let index = 0; index < buckChanges.length; index+=1) {
         const {id, ...changes} = buckChanges[index];
@@ -286,7 +286,7 @@ interface SourceTargetJson {
 
 
 export const GenerateProject = async (projectFolder: string, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
-    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'), true);
+    const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
 
     const configInfo = db.prepare("SELECT key, value FROM config WHERE key='sourceVideoToUse' OR key='sourceVideoAbs'").all() as {key: string, value: string}[];
 

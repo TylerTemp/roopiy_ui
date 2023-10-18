@@ -1,3 +1,5 @@
+const sass = require('sass');
+
 export default [
     {
         test: /\.css/,
@@ -39,11 +41,11 @@ export default [
                     esModule: true,
                 },
             },
-            'postcss-loader',
+            // 'postcss-loader',
             {
                 loader: 'sass-loader',
                 options: {
-                implementation: require('sass'),
+                    implementation: sass,
                 },
             },
         ],

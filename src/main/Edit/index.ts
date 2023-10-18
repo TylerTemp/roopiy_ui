@@ -1,5 +1,5 @@
 import { type FrameFaces, type FrameFace } from "~s/Types/Edit";
-import { join, extname } from "path";
+import { join, extname, dirname } from "path";
 import ImageSize from 'image-size';
 import { type ISize } from 'image-size/dist/types/interface';
 import { copyFileSync, existsSync, mkdirSync } from "fs";
@@ -13,6 +13,7 @@ import { GetRectFromFace, Rect } from "../../shared/Face";
 import { clamp } from "../../shared/Util";
 import { ParsedFaceLibType, UpdateFrameFaceType } from "./Types";
 import roopiy from "../Utils/Roopiy";
+import { BrowserWindow } from "electron";
 
 export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
@@ -54,6 +55,9 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
     // faceLibId: number | null,
     // frameFilePath: string,
 
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    focusedWindow?.setProgressBar(0);
+
     const {total} = db.prepare('SELECT COUNT(*) AS total FROM frame').get() as {total: number};
 
     // // const totalCount = total as number;
@@ -63,7 +67,7 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
     while(true) {
         // callback(offset, total);
         const startTime = new Date();
-        console.log(`query all frames`, offset, limit);
+        // console.log(`query all frames`, offset, limit);
         const frames = db.prepare(`
             SELECT
                 frame.*,
@@ -85,8 +89,9 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
 
         const usedTime = (new Date()).getTime() - startTime.getTime();
 
-        console.log(`query all frames finished`, ConvertMsToTime(usedTime), frames.length);
+        // console.log(`query all frames finished`, ConvertMsToTime(usedTime), frames.length);
         if(frames.length === 0) {
+            focusedWindow?.setProgressBar(0);
             return allResults;
         }
 
@@ -115,32 +120,9 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
 
         offset += results.length;
         callback(offset, total);
+        focusedWindow?.setProgressBar(offset/total);
         allResults.push(...results);
     }
-
-
-    // console.log(`query all frames finished`, framesSqlResults.length);
-
-    // return ;
-    // const frames = db.prepare('SELECT * FROM frame').all() as FrameType[];
-
-    // return frames.map((frame: FrameType): FrameFaces => {
-
-    //     const dbFaces = db.prepare('SELECT * FROM frameFace WHERE frameFilePath = ?').all(frame.filePath) as FrameFaceType[];
-    //     const frameFaces: FrameFace[] = dbFaces.map(
-    //         ({value, ...left}: FrameFaceType): FrameFace => ({
-    //             ...left,
-    //             face: JSON.parse(value),
-    //         })
-    //     );
-
-    //     return {
-    //         frameFile: frame.filePath,
-    //         faces: frameFaces,
-    //         width: frame.width,
-    //         height: frame.height,
-    //     };
-    // });
 }
 
 
@@ -225,7 +207,7 @@ export const SaveFaceLib = async (projectFolder: string, face: Face, file: strin
         alias,
         hide: 0,
     }
-    console.log(`add new face`, faceLib);
+    // console.log(`add new face`, faceLib);
     const {lastInsertRowid} = db.prepare('INSERT INTO faceLib (value, alias, hide) VALUES (:value, :alias, :hide)').run(faceLib);
     const faceId = lastInsertRowid as number;
 
@@ -288,6 +270,9 @@ interface SourceTargetJson {
 
 export const GenerateProject = async (projectFolder: string, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
+
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    focusedWindow?.setProgressBar(0);
 
     const configInfo = db.prepare("SELECT key, value FROM config WHERE key='sourceVideoToUse' OR key='sourceVideoAbs'").all() as {key: string, value: string}[];
 
@@ -366,9 +351,12 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
 
             // eslint-disable-next-line no-await-in-loop
             await roopiy.Send(JSON.stringify({
-                'source_image_path': sourcePath,
-                'target_image_path': targetPath,
-                'swap_info': swapInfo,
+                'method': 'swap_faces',
+                'payload': {
+                    'source_image_path': sourcePath,
+                    'target_image_path': targetPath,
+                    'swap_info': swapInfo,
+                }
             }));
             // await fetch(`http://${WrapperHost}/swap-faces?from_file=${encodeURIComponent(sourcePath)}&to_file=${encodeURIComponent(targetPath)}`, {
             //         method: 'POST',
@@ -387,6 +375,7 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
         }
 
         callback(index+1, allFilePath.length, `${index+1}/${allFilePath.length} - ${filePath}`);
+        focusedWindow?.setProgressBar((index+1)/allFilePath.length);
     }
 
     // mp4
@@ -427,6 +416,8 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
     const audioResult = spawnSync('ffmpeg', audioArgs, { encoding: 'utf-8', shell: false });
     console.assert(audioResult.status === 0);
 
+    focusedWindow?.setProgressBar(0);
+
     return Promise.resolve(mp4Path);
 }
 
@@ -441,12 +432,21 @@ export interface FrameTypePreview {
 export const PreviewFrameSwap = (projectFolder: string, {filePath, swapInfo}: FrameTypePreview): Promise<string> => {
     const swapFile = join('swap', filePath.replaceAll('frames/', ''));
     const swapToPath = join(ProjectsRoot, projectFolder, swapFile);
+    const swapDir = dirname(swapToPath);
+    if(!existsSync(swapDir)) {
+        mkdirSync(swapDir, { recursive: true });
+    }
     const sourcePath = join(ProjectsRoot, projectFolder, filePath);
 
+    console.log(`frame swap to`, swapFile);
+
     return roopiy.Send(JSON.stringify({
-        'source_image_path': sourcePath,
-        'target_image_path': swapToPath,
-        'swap_info': swapInfo,
+        'method': 'swap_faces',
+        'payload': {
+            'source_image_path': sourcePath,
+            'target_image_path': swapToPath,
+            'swap_info': swapInfo,
+        }
     }))
-        .then(() => swapFile);
+        .then(() => swapFile.replaceAll('\\', '/'));
 }

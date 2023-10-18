@@ -60,6 +60,9 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
     const fileExt = extname(referenceVideoFile);
     const targetFileName = `target${fileExt}`;
 
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    focusedWindow?.setProgressBar(0);
+
     console.log(`CutVideoAsSource`, referenceVideoFile, referenceVideoFrom, referenceVideoDuration, targetFileName);
 
     return new Promise<string>((resolve, reject) => {
@@ -92,7 +95,8 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
                 const currentTimeStr = timeLine[1];
                 console.log('CutVideoAsSource Current Time:', currentTimeStr);
                 const currentTime = ParseFFmpegTime(currentTimeStr);
-                callback(currentTime, referenceVideoDuration as number, `${currentTimeStr} ${referenceVideoFile}`)
+                callback(currentTime, referenceVideoDuration as number, `${currentTimeStr} ${referenceVideoFile}`);
+                focusedWindow?.setProgressBar(currentTime / (referenceVideoDuration as number));
             }
         });
 
@@ -114,8 +118,11 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
 }
 
 
-export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, referenceVideoSlice, referenceVideoDuration}: ProjectType, callback: (cur:number, total: number, text: string) => void): Promise<void> => {
+export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, sourceVideoAbs, referenceVideoSlice, referenceVideoDuration}: ProjectType, callback: (cur:number, total: number, text: string) => void): Promise<void> => {
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    focusedWindow?.setProgressBar(0);
+
     const fileDir = join(ProjectsRoot, projectFolder, 'frames');
     if(existsSync(fileDir)) {
         console.log(`purge dir ${fileDir}`);
@@ -124,10 +131,13 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, reference
     mkdirSync(fileDir, { recursive: true});
 
     callback(-1, -1, `Get video duration: ${referenceVideoSlice}`);
+    const sourceVideoPath = sourceVideoAbs
+        ? sourceVideoToUse
+        : join(ProjectsRoot, projectFolder, sourceVideoToUse);
 
     const totalDuration: number = referenceVideoSlice
         ? referenceVideoDuration as number
-        : GetVideoSeconds(sourceVideoToUse);
+        : GetVideoSeconds(sourceVideoPath);
 
     callback(-1, -1, `Get video duration: ${totalDuration}`);
 
@@ -139,7 +149,7 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, reference
             'auto',
             '-progress', 'pipe:1',
             '-i',
-            sourceVideoToUse,
+            sourceVideoPath,
             join(ProjectsRoot, projectFolder, 'frames', '%06d.png'),
         ], { stdio: 'pipe', shell: false });
 
@@ -152,13 +162,14 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, reference
                 const currentTimeStr = timeLine[1];
                 console.log('ExtractVideo Current Time:', currentTimeStr);
                 const currentTime = ParseFFmpegTime(currentTimeStr);
-                callback(currentTime, totalDuration, `${currentTimeStr} ${sourceVideoToUse}`)
+                callback(currentTime, totalDuration, `${currentTimeStr} ${sourceVideoToUse}`);
+                focusedWindow?.setProgressBar(currentTime/totalDuration);
             }
         });
 
         ffmpeg.stderr.on('data', (data) => {
             // Process ffmpeg error output, if needed.
-            // console.error(data.toString());
+            console.error(data.toString());
         });
 
         ffmpeg.on('close', (code) => {
@@ -185,6 +196,8 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
     const focusedWindow = BrowserWindow.getFocusedWindow();
 
+    console.log(`png count: ${images.length}`)
+
     for (let index = 0; index < images.length; index+=1) {
         const imageFile: Dirent = images[index];
         const frameFile = `frames/${imageFile.name}`;
@@ -192,6 +205,7 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
         if(!db.prepare(`SELECT filePath FROM frame WHERE filePath = ?`).get(frameFile))
         {
+            console.log(imageFile.name);
             const imagePath = join(rootPath, imageFile.name);
             const dimensions = ImageSize(imagePath);
             console.assert(dimensions.width, `width is undefined for ${imagePath}`);
@@ -207,6 +221,7 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
             db
                 .prepare('INSERT INTO frame(filePath, width, height, swappedToPath) VALUES (:filePath, :width, :height, :swappedToPath)')
                 .run(frameInfo);
+
 
             try {
                 // eslint-disable-next-line no-await-in-loop
@@ -228,6 +243,9 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
                 // callback(index+1, images.length, facesCount, imageFile.name);
             } catch (error) {
+                db
+                    .prepare('DELETE FROM frame WHERE filePath = ?')
+                    .run(frameInfo.filePath);
                 focusedWindow?.setProgressBar(0);
                 return Promise.reject(error);
             }

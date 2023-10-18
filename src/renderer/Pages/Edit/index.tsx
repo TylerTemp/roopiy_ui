@@ -168,9 +168,9 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
 
         <Stack gap={2} className={Style.mainContainer}>
             <ImageFullDraw
-                src={`project://${projectFolder}/${previewFirst
+                src={`project://${encodeURIComponent(projectFolder)}/${encodeURI(previewFirst
                     ? (swappedToPath ?? frameFile)
-                    : frameFile}`}
+                    : frameFile)}`}
                 width={width}
                 height={height}
                 drawInfos={faces.map((eachFace: FrameFace) => ({

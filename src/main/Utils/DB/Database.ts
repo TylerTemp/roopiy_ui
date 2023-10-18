@@ -51,7 +51,7 @@ CREATE INDEX frameFilePath_frameFilePath ON frameFace (frameFilePath ASC);
 const GetOrCreateDatabase = (key: string): Sqlite.Database => {
     if(!dbMap[key]) {
         const options = {
-            verbose: console.log,
+            // verbose: console.log,
             // fileMustExist: asFile
         };
         // const dbTarget = asFile? key: ":memory:";

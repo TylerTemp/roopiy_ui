@@ -6,6 +6,7 @@ import typing
 import sys
 from io import StringIO
 import json
+import logging
 
 import docpie
 
@@ -18,6 +19,9 @@ class NoStdOut(object):
         sys.stdout = self.stream
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        content = self.stream.getvalue().strip()
+        if content:
+            logging.getLogger('rw.io').debug(content)
         self.stream.close()
         sys.stdout = sys.__stdout__
 
@@ -45,7 +49,6 @@ def identify_faces(file_path: str) -> str:
         _, faces = identify_faces_in_image(face_analyser, file_path)
     return json.dumps(faces, cls=FaceJSONEncoder)
 
-
 class SwapInfoType(typing.TypedDict):
     source: dict
     target: dict
@@ -68,6 +71,14 @@ def swap_faces(source_image_path: str, target_image_path: str, swap_info: list[S
 sys.stdout.write('ROOPIY:STARTED\n')
 sys.stdout.flush()
 
+# with open("log.txt", 'wb'):
+#     pass
+
+# logging.basicConfig(filename="log.txt", level=logging.INFO)
+
+logger = logging.getLogger('rw')
+logger.setLevel(logging.ERROR)
+
 for line in sys.stdin:
     call_info = json.loads(line)
     payload = call_info['payload']
@@ -75,11 +86,15 @@ for line in sys.stdin:
     match call_info['method']:
         case 'identify_faces':
             result = identify_faces(payload)
-            sys.stderr.write(f'python:reply: {result}\n')
+            # sys.stderr.write(f'python:reply: {result}\n')
+            logger.debug('%r: %r', payload, str(result)[:100])
+            assert '\n' not in result, repr(result)
             sys.stdout.write(result)
             sys.stdout.write('\n')
             sys.stdout.flush()
         case 'swap_faces':
             sys.stdout.write(swap_faces(payload['source_image_path'], payload['target_image_path'], payload['swap_info']))
+            sys.stdout.write('\n')
+            sys.stdout.flush()
         case _:
             raise NotImplementedError(f'unknown method: {call_info["method"]}')

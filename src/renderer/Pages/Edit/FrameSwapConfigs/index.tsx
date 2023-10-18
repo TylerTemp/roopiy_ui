@@ -222,14 +222,19 @@ export default ({projectFolder, frameFaces, faceLibFaces, setFrameFaces, selecte
         const {filePath, faces} = frameFaces[selectedFrameIndex];
         window.electron.ipcRenderer.Edit.PreviewFrameSwap(projectFolder, {
             filePath,
-            swapInfo: faces.map(({face: source, faceLibId}) => ({
-                source,
-                target: faceLibFaces.find(each => each.id === faceLibId)!.face,
-            }))
+            swapInfo: faces
+                .filter(({faceLibId}) => faceLibId !== null)
+                .map(({face: source, faceLibId}) => ({
+                    source,
+                    target: faceLibFaces.find(each => each.id === faceLibId)!.face,
+                }))
         })
-        .then(swappedToPath => setFrameFaces(prev => prev.map(each => each.filePath === filePath
-            ? {...each, swappedToPath}
-            : each)));
+        .then(swappedToPath => {
+            console.log(`done, swap to`, swappedToPath);
+            return setFrameFaces(prev => prev.map(each => each.filePath === filePath
+                ? { ...each, swappedToPath}
+                : each));
+        });
     }
 
     return <>

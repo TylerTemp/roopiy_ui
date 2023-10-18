@@ -13,5 +13,14 @@ export const IdentifyFaces = (imagePath: string): Promise<Face[]> => {
         'method': 'identify_faces',
         'payload': imagePath,
     }))
-        .then(resp => JSON.parse(resp) as Face[]);
+        .then(resp => {
+            try {
+                return JSON.parse(resp) as Face[];
+            }
+            catch(e) {
+                console.error(resp);
+                console.error(imagePath);
+                throw e;
+            }
+        });
 }

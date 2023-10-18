@@ -9,6 +9,7 @@ import { IdentifyFaces } from '../Utils/Face';
 import Database from '../Utils/DB/Database';
 import { type FrameType, type FrameFaceType } from '../Utils/DB/Types';
 import { ParseFFmpegTime } from "../../shared/Util";
+import { BrowserWindow } from 'electron/main';
 
 
 export const GetList = (): string[] => {
@@ -182,14 +183,14 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
     const db = Database(join(ProjectsRoot, projectFolder, 'config.db'));
 
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+
     for (let index = 0; index < images.length; index+=1) {
         const imageFile: Dirent = images[index];
         const frameFile = `frames/${imageFile.name}`;
+        let faceCount = 0;
 
-        if(db.prepare(`SELECT filePath FROM frame WHERE filePath = ?`).get(frameFile)) {
-            callback(index+1, images.length, 0, imageFile.name);
-        }
-        else
+        if(!db.prepare(`SELECT filePath FROM frame WHERE filePath = ?`).get(frameFile))
         {
             const imagePath = join(rootPath, imageFile.name);
             const dimensions = ImageSize(imagePath);
@@ -209,7 +210,7 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
 
             try {
                 // eslint-disable-next-line no-await-in-loop
-                const facesCount: number = await IdentifyFaces(join(rootPath, imageFile.name))
+                faceCount = await IdentifyFaces(join(rootPath, imageFile.name))
                     .then(faces => {
 
                         const stmt = db.prepare('INSERT INTO frameFace(value, frameFilePath, groupId, faceLibId) VALUES (:value, :frameFilePath, :groupId, :faceLibId)');
@@ -225,11 +226,14 @@ export const ExtractFacesInProject = async (projectFolder: string, callback: (cu
                         return faces.length;
                     });
 
-                callback(index+1, images.length, facesCount, imageFile.name);
+                // callback(index+1, images.length, facesCount, imageFile.name);
             } catch (error) {
+                focusedWindow?.setProgressBar(0);
                 return Promise.reject(error);
             }
         }
+        callback(index+1, images.length, faceCount, imageFile.name);
+        focusedWindow?.setProgressBar((index+1)/images.length);
     }
 
     return Promise.resolve();

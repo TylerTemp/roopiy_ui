@@ -6,12 +6,13 @@ import { copyFileSync, existsSync, mkdirSync } from "fs";
 import sharp from "sharp";
 import { spawnSync } from "child_process";
 import Face from "../../shared/Types/Face";
-import {ProjectsRoot, WrapperHost} from '../Utils/Config';
+import {ProjectsRoot} from '../Utils/Config';
 import Database from '../Utils/DB/Database';
 import {type FrameType, type FrameFaceType, type FaceLibType} from '../Utils/DB/Types';
 import { GetRectFromFace, Rect } from "../../shared/Face";
 import { clamp } from "../../shared/Util";
 import { ParsedFaceLibType, UpdateFrameFaceType } from "./Types";
+import roopiy from "../Utils/Roopiy";
 
 export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
@@ -348,32 +349,41 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
             copyFileSync(sourcePath, targetPath);
         }
         else {
-            const arrayItems = parsedInfos.map(({sourceStr, targetStr}) => `{
-                "source": ${sourceStr},
-                "target": ${targetStr}
-            }`);
+            // const arrayItems = parsedInfos.map(({sourceStr, targetStr}) => `{
+            //     "source": ${sourceStr},
+            //     "target": ${targetStr}
+            // }`);
 
-            const bodyJson = `[
-                ${arrayItems.join(",\n")}
-            ]`;
+            // const bodyJson = `[
+            //     ${arrayItems.join(",\n")}
+            // ]`;
+            const swapInfo = parsedInfos.map(({sourceStr, targetStr}) => ({
+                source: JSON.parse(sourceStr),
+                target: JSON.parse(targetStr),
+            }));
 
             // console.log(bodyJson);
 
             // eslint-disable-next-line no-await-in-loop
-            await fetch(`http://${WrapperHost}/swap-faces?from_file=${encodeURIComponent(sourcePath)}&to_file=${encodeURIComponent(targetPath)}`, {
-                    method: 'POST',
-                    body: bodyJson,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                    .then(resp => {
-                        console.assert(resp.ok);
-                        return resp.text();
-                    })
-                    .then(resp => {
-                        console.log(resp);
-                });
+            await roopiy.Send(JSON.stringify({
+                'source_image_path': sourcePath,
+                'target_image_path': targetPath,
+                'swap_info': swapInfo,
+            }));
+            // await fetch(`http://${WrapperHost}/swap-faces?from_file=${encodeURIComponent(sourcePath)}&to_file=${encodeURIComponent(targetPath)}`, {
+            //         method: 'POST',
+            //         body: bodyJson,
+            //         headers: {
+            //             'Content-Type': 'application/json',
+            //         }
+            //     })
+            //         .then(resp => {
+            //             console.assert(resp.ok);
+            //             return resp.text();
+            //         })
+            //         .then(resp => {
+            //             console.log(resp);
+            //     });
         }
 
         callback(index+1, allFilePath.length, `${index+1}/${allFilePath.length} - ${filePath}`);

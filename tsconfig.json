@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "strictPropertyInitialization": false,
     "incremental": true,
     "target": "es2022",
     "module": "commonjs",

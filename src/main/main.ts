@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { resolveHtmlPath, GetProjectResource, GetExtResource } from './util';
 import IpcSetup from './IpcSetup';
+import roopiy from './Utils/Roopiy';
 
 class AppUpdater {
     constructor() {
@@ -141,6 +142,7 @@ app.on('window-all-closed', () => {
 app
     .whenReady()
     .then(() => {
+        roopiy.Init();
         createWindow();
         protocol.handle('project', GetProjectResource);
         protocol.handle('extfile', GetExtResource);

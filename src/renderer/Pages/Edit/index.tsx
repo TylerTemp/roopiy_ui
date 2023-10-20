@@ -12,14 +12,14 @@ import Box from "@mui/material/Box";
 import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
 import Button from "@mui/material/Button";
 import enqueueSnackbar from "~/Utils/enqueueSnackbar";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import GroupDrawer from "./GroupDrawer";
 import FrameSwapConfigs from "./FrameSwapConfigs";
 import FaceLib, { type FaceLibType } from "./FaceLib";
 import Style from "./index.scss";
 import ImageFullDraw from "./ImageFullDraw";
 import { FrameFacesEdited } from "./Face";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 
 
 const PickColor = (num: number, colors: CssColorMust[]): CssColorMust => colors[num % colors.length];
@@ -65,6 +65,7 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
     });
 
     const [previewFirst, setPreviewFirst] = useState<boolean>(true);
+    const [showSwapName, setShowSwapName] = useState<boolean>(true);
 
     const [cachedFrameFaces, setCachedFrameFaces] = useState<FrameFacesEdited[]>(frameFaces);
     const [cacheFaceLibFaces, setCacheFaceLibFaces] = useState<FaceLibType[]>(faceLibFaces);
@@ -175,10 +176,13 @@ const EditRenderer = ({getResource, projectFolder}: EditRendererProps) => {
                 height={height}
                 drawInfos={faces.map((eachFace: FrameFace) => ({
                     rect: GetRectFromFace(eachFace.face),
-                    text: eachFace.faceLibId? `${eachFace.groupId}|${cacheFaceLibFaces.find(each => each.id === eachFace.faceLibId)!.alias}`: `${eachFace.groupId}`,
+                    text: (showSwapName && eachFace.faceLibId)? `${eachFace.groupId}|${cacheFaceLibFaces.find(each => each.id === eachFace.faceLibId)!.alias}`: `${eachFace.groupId}`,
                     color: PickColor(eachFace.groupId, colorPlattes),
                 }))} />
-            <FormControlLabel control={<Checkbox color={swappedToPath? 'success': 'primary'} checked={previewFirst} onChange={({target: {checked}}: ChangeEvent<HTMLInputElement>) => setPreviewFirst(checked)} />} label="Preview First" />
+            <Stack direction="row">
+                <FormControlLabel control={<Checkbox color={swappedToPath? 'success': 'primary'} checked={previewFirst} onChange={({target: {checked}}: ChangeEvent<HTMLInputElement>) => setPreviewFirst(checked)} />} label="Preview First" />
+                <FormControlLabel control={<Checkbox checked={showSwapName} onChange={({target: {checked}}: ChangeEvent<HTMLInputElement>) => setShowSwapName(checked)} />} label="Swap Name" />
+            </Stack>
             <Typography variant="caption" className={Style.textCenter}>{frameFile}[{faces.length}]</Typography>
 
             <GroupDrawer

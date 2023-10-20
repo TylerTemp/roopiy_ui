@@ -5,6 +5,7 @@ import { type ISize } from 'image-size/dist/types/interface';
 import { copyFileSync, existsSync, mkdirSync } from "fs";
 import sharp from "sharp";
 import { spawnSync } from "child_process";
+import { BrowserWindow } from "electron";
 import Face from "../../shared/Types/Face";
 import {ProjectsRoot} from '../Utils/Config';
 import Database from '../Utils/DB/Database';
@@ -13,7 +14,6 @@ import { GetRectFromFace, Rect } from "../../shared/Face";
 import { clamp } from "../../shared/Util";
 import { ParsedFaceLibType, UpdateFrameFaceType } from "./Types";
 import roopiy from "../Utils/Roopiy";
-import { BrowserWindow } from "electron";
 
 export const GetImageSize = (imagePath: string): ISize => ImageSize(imagePath);
 
@@ -386,10 +386,11 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
         '-hide_banner',
         '-loglevel', 'error',
         '-hwaccel', 'auto',
+        '-progress', 'pipe:1',
         '-r', `30`,  // fps
         '-i', join(targetFolderPath, '%06d.png'),
         '-c:v', 'libx264',
-        // '-crf', str(output_video_quality),
+        '-crf', '18',
         '-pix_fmt', 'yuv420p',
         '-vf', 'colorspace=bt709:iall=bt601-6-625:fast=1',
         '-y', mp4TempPath
@@ -404,6 +405,8 @@ export const GenerateProject = async (projectFolder: string, callback: (cur: num
         '-hide_banner',
         '-loglevel', 'error',
         '-hwaccel', 'auto',
+        '-progress', 'pipe:1',
+        '-r', `30`,  // fps
         '-i', mp4TempPath,
         '-i', mp4SourcePath,
         '-c:v', 'copy',

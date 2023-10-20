@@ -3,6 +3,7 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import { useState, useEffect } from "react";
+import Checkbox from "@mui/material/Checkbox";
 import PickColor from "../PickColor";
 
 
@@ -24,6 +25,7 @@ const CreateObjFromArr = (arr: number[]): Map<number, number> => new Map<number,
 
 
 export default ({allGroupIds, checkGroupIds, onSwapChanged}: Props) => {
+    const [link, setLink] = useState<boolean>(true);
 
     const [swapGroupMap, setSwapGroupMap] = useState<Map<number, number>>(CreateObjFromArr(checkGroupIds));
     useEffect(() => {
@@ -33,7 +35,7 @@ export default ({allGroupIds, checkGroupIds, onSwapChanged}: Props) => {
     const setSwapGroup = (groupId: number, newGroupId: number) => {
         setSwapGroupMap((oldMap): Map<number, number> => {
             const conflictInfo = [...oldMap.entries()].find(([_key, value]) => value === newGroupId);
-            if(conflictInfo === undefined) {
+            if(!link || conflictInfo === undefined) {
                 const newMap = new Map<number, number>(oldMap.entries());
                 newMap.set(groupId, newGroupId);
                 onSwapChanged(Object.fromEntries([...newMap.entries()].filter(([key, value]) => key !== value)));
@@ -56,6 +58,7 @@ export default ({allGroupIds, checkGroupIds, onSwapChanged}: Props) => {
 
 
     return <>
+        <Checkbox checked={link} onChange={({target: {checked}}) => setLink(checked)} />
         {checkGroupIds.map(groupId => {
             // console.log(`groupId: ${groupId} get`, swapGroupMap.get(groupId));
             const swapGroupId = swapGroupMap.get(groupId) || allGroupIds[0];

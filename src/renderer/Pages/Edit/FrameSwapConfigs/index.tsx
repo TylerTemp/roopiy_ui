@@ -130,8 +130,10 @@ export default ({projectFolder, frameFaces, faceLibFaces, setFrameFaces, selecte
                 takenGroupIds.add(targetFace.groupId);
                 availableGroupIds.delete(targetFace.groupId);
                 newTagetFaces.push(targetFace);
-            })
-            prevFaces = newTagetFaces;
+            });
+            if(newTagetFaces.length > 0) {
+                prevFaces = newTagetFaces;
+            }
 
             return {...leftFrameArgs, edited, faces: newTagetFaces};
         });

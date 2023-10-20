@@ -4,12 +4,12 @@ import { extname, join } from 'path';
 import type ProjectType from '~s/Types/Project';
 // import { type FrameFaces } from '~s/Types/Edit';
 import ImageSize from 'image-size';
+import { BrowserWindow } from 'electron';
 import {ProjectsRoot} from '../Utils/Config';
 import { IdentifyFaces } from '../Utils/Face';
 import Database from '../Utils/DB/Database';
 import { type FrameType, type FrameFaceType } from '../Utils/DB/Types';
 import { ParseFFmpegTime } from "../../shared/Util";
-import { BrowserWindow } from 'electron/main';
 
 
 export const GetList = (): string[] => {
@@ -150,6 +150,8 @@ export const ExtractVideo = (projectFolder: string, {sourceVideoToUse, sourceVid
             '-progress', 'pipe:1',
             '-i',
             sourceVideoPath,
+            '-pix_fmt', 'rgb24',
+            '-vf', 'fps=30',
             join(ProjectsRoot, projectFolder, 'frames', '%06d.png'),
         ], { stdio: 'pipe', shell: false });
 

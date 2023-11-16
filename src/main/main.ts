@@ -139,12 +139,38 @@ app.on('window-all-closed', () => {
     }
 });
 
+protocol.registerSchemesAsPrivileged([
+    {
+      scheme: 'project',
+      privileges: {
+        secure: true,
+        standard: true,
+        supportFetchAPI: true, // Add this if you want to use fetch with this protocol.
+        stream: true, // Add this if you intend to use the protocol for streaming i.e. in video/audio html tags.
+        corsEnabled: true, // Add this if you need to enable cors for this protocol.
+      },
+    },
+  ]);
+
 app
     .whenReady()
     .then(() => {
         roopiy.Init();
         createWindow();
+
+        // protocol.registerSchemesAsPrivileged([{
+        //     scheme: 'project',
+        //     privileges: {
+        //         standard: true,
+        //         secure: true,
+        //         stream: true,
+        //         bypassCSP: true,
+        //         supportFetchAPI: true,
+        //     }
+        // }]);
         protocol.handle('project', GetProjectResource);
+        // app.setAsDefaultProtocolClient('project');
+
         protocol.handle('extfile', GetExtResource);
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the

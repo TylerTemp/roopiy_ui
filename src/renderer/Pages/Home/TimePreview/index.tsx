@@ -42,6 +42,8 @@ export default ({label, error, value, onChange, durationOffset, projectFolder, r
     const [loading, setLoading] = useState<boolean>(false);
     const [videoFile, setVideoFile] = useState<string | null>(null);
 
+    // const [videoTime, setVideoTime]
+
     const [reload, setReload] = useState<number>(1);
 
     const LoadVideo = () => {
@@ -51,6 +53,8 @@ export default ({label, error, value, onChange, durationOffset, projectFolder, r
         const startTime: number = durationOffset > 0? curTime: curTime + durationOffset;
         // const endTime: number = durationOffset > 0? curTime + durationOffset: curTime;
         const duration: number = Math.abs(durationOffset);
+        const prevVideoFile = videoFile;
+        setVideoFile(null);
 
         window.electron.ipcRenderer.Project.CutVideo(
             projectFolder,
@@ -60,8 +64,14 @@ export default ({label, error, value, onChange, durationOffset, projectFolder, r
             `${durationOffset}${GetFileExtension(referenceVideoFile)}`,
             (cur, total, text) => console.log(cur, total, text),
         )
-            .then(setVideoFile)
-            .catch(console.error)
+            .then(result => {
+                setVideoFile(result);
+                setReload(prev => (prev+1) % 10);
+            })
+            .catch(err => {
+                console.error(err);
+                setVideoFile(prevVideoFile);
+            })
             .finally(() => setLoading(false));
     }
 
@@ -87,7 +97,7 @@ export default ({label, error, value, onChange, durationOffset, projectFolder, r
             }}
         />
 
-        {videoFile && <><video controls muted autoPlay loop className={Style.video} key={`${reload}_${loading}`}>
+        {videoFile && <><video controls muted autoPlay className={Style.video} key={`${reload}_${loading}`}>
             <source src={`project://${encodeURIComponent(projectFolder)}/${encodeURI(videoFile)}?q=${reload}`} />
         </video>
             <button type="button" onClick={() => setReload(prev => (prev+1) % 10)}>Reload</button>

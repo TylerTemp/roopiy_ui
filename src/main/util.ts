@@ -1,8 +1,10 @@
 /* eslint import/prefer-default-export: off */
 import { URL } from 'url';
-import { join, resolve } from 'path';
+import path from 'path';
 import { net } from 'electron';
 import Os from 'os'
+import fs from "fs";
+import mime from "mime";
 import { ProjectsRoot } from './Utils/Config';
 
 export function resolveHtmlPath(htmlFileName: string) {
@@ -12,7 +14,7 @@ export function resolveHtmlPath(htmlFileName: string) {
         url.pathname = htmlFileName;
         return url.href;
     }
-    return `file://${resolve(__dirname, '../renderer/', htmlFileName)}`;
+    return `file://${path.resolve(__dirname, '../renderer/', htmlFileName)}`;
 }
 
 export const GetProjectResource = (request: Request): Promise<Response> => {
@@ -21,7 +23,34 @@ export const GetProjectResource = (request: Request): Promise<Response> => {
         uri = uri.slice(0, uri.indexOf('?'));
     }
 
-    let filePath = join(ProjectsRoot, uri);
+    let filePath = path.join(ProjectsRoot, uri);
+
+    // return fs.promises.readFile(filePath)
+    //     .then(buffer => {
+    //         const mimeType = mime.getType(filePath)!;
+    //         console.log(`read file ${filePath}: ${mimeType} data.length=${buffer.length}`);
+    //         return new Response(buffer, {
+    //             headers: {
+    //                 'content-type': mimeType,
+    //                 'content-length': buffer.length.toString(),
+    //             }
+    //         });
+    //     });
+
+    // return new Promise((resolve, reject) => {
+    //     fs.readFile(filePath, (err, data) => {
+    //         if(err) {
+    //             // console.error(err);
+    //             // throw err;
+    //             reject(err);
+    //         }
+    //         console.log(`read file ${filePath}: data.length=${data.length}`);
+    //         // console.log(data);
+    //         // return new Response(data);
+    //         resolve(new Response(data));
+    //     });
+    // });
+
 
     console.log(`filePath=${filePath}`);
 
@@ -32,7 +61,15 @@ export const GetProjectResource = (request: Request): Promise<Response> => {
 
     console.log(`fetch file file://${filePath}`);
 
-    return net.fetch(`file://${filePath}`);
+    return net.fetch(`file://${filePath}`)
+        .then(resp => {
+            console.log(resp);
+            return resp;
+        })
+        .catch(err => {
+            console.error(err);
+            throw err;
+        });
 }
 
 

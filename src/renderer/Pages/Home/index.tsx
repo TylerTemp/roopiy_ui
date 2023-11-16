@@ -16,8 +16,12 @@ import Collapse from "@mui/material/Collapse";
 import { useNavigate } from "react-router-dom";
 import TitleProgressLoading, { TitleProgressLoadingProps } from "~/Components/TitleProgressLoading";
 import { ParseFFmpegTime } from "~s/Util";
-import Style from './index.scss'
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import FileTextField from './FileTextField';
+import Style from './index.scss'
+import TimePreview from "./TimePreview";
 
 
 function assertIsError(error: unknown): asserts  error is Error {
@@ -333,7 +337,18 @@ export default () => {
 
                     <Collapse in={projectEdit.referenceVideoSlice}>
                         <Stack direction="row" gap={1} >
-                            <TextField
+                            <TimePreview
+                                label="From"
+                                error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
+                                value={projectEdit.referenceVideoFrom}
+                                onChange={(value) => setProjectEdit({...projectEdit, referenceVideoFrom: value})}
+                                durationOffset={3}
+                                projectFolder={selectedProjectFolder}
+                                referenceVideoFile={projectEdit.referenceVideoFile}
+
+                            />
+
+                            {/* <TextField
                                 fullWidth
                                 variant="standard"
                                 label="From"
@@ -341,8 +356,19 @@ export default () => {
                                 error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
                                 value={projectEdit.referenceVideoFrom}
                                 onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoFrom: evt.target.value})}
+                            /> */}
+
+                            <TimePreview
+                                label="To"
+                                error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
+                                value={projectEdit.referenceVideoTo}
+                                onChange={(value) => setProjectEdit({...projectEdit, referenceVideoTo: value})}
+                                durationOffset={-3}
+                                projectFolder={selectedProjectFolder}
+                                referenceVideoFile={projectEdit.referenceVideoFile}
+
                             />
-                            <TextField
+                            {/* <TextField
                                 fullWidth
                                 variant="standard"
                                 label="To"
@@ -350,7 +376,7 @@ export default () => {
                                 error={projectEdit.referenceVideoSlice && projectEdit.referenceVideoFrom === '' && projectEdit.referenceVideoTo === ''}
                                 value={projectEdit.referenceVideoTo}
                                 onChange={(evt) => setProjectEdit({...projectEdit, referenceVideoTo: evt.target.value})}
-                            />
+                            /> */}
                         </Stack>
                     </Collapse>
 

@@ -2,7 +2,7 @@ import type { IpcMain } from 'electron';
 import ProjectType from '~s/Types/Project';
 import Face from '~s/Types/Face';
 import Channel from './IpcChannel';
-import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig, CutVideoAsSource } from './Project';
+import { GetList, ExtractVideo, GetConfig, GetVideoSeconds, ExtractFacesInProject, SaveConfig, CutVideoAsSource, CutVideo } from './Project';
 import { GetProjectFrameFaces, GetImageSize, GetAllFacesInFaceLib, SaveFaceLib, UpdateFrameFaces, GenerateProject, PreviewFrameSwap, FrameTypePreview } from './Edit';
 import { UpdateFrameFaceType } from './Edit/Types';
 import { IdentifyFaces } from './Utils/Face';
@@ -22,6 +22,15 @@ export default (ipcMain: IpcMain): void => {
             {
                 const [_, channelName, projectFolder, config] = args;
                 return CutVideoAsSource(projectFolder as string, config as ProjectType, (cur: number, total: number, text: string) => {
+                    // console.log(`emit ${channelName} ${count}`)
+                    event.sender.send(channelName, cur, total, text);
+                });
+            }
+            case Channel.Project.v.CutVideo:
+            {
+                // referenceVideoFile: string, referenceVideoFrom: number, referenceVideoDuration: number, targetFileName: string
+                const [_, channelName, projectFolder, referenceVideoFile, referenceVideoFrom, referenceVideoDuration, targetFileName] = args;
+                return CutVideo(projectFolder as string, referenceVideoFile as string, referenceVideoFrom as number, referenceVideoDuration as number, targetFileName as string, (cur: number, total: number, text: string) => {
                     // console.log(`emit ${channelName} ${count}`)
                     event.sender.send(channelName, cur, total, text);
                 });

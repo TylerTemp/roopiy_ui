@@ -18,7 +18,16 @@ export function resolveHtmlPath(htmlFileName: string) {
 export const GetProjectResource = (request: Request): Promise<Response> => {
     const uri = request.url.slice('project://'.length);
 
-    const filePath = join(ProjectsRoot, uri);
+    let filePath = join(ProjectsRoot, uri);
+
+    console.log(`filePath=${filePath}`);
+
+    if(Os.platform() === 'win32') {
+        const [disk, ...leftPaths] = filePath.split('\\');
+        filePath = `/${disk}/${leftPaths.join('/')}`
+    }
+
+    console.log(`fetch file file://${filePath}`);
 
     return net.fetch(`file://${filePath}`);
 }

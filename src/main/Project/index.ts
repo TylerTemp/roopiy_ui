@@ -56,14 +56,11 @@ export const GetVideoSeconds = (videoFile: string): number => {
 }
 
 
-export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, referenceVideoFrom, referenceVideoDuration}: ProjectType, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
-    const fileExt = extname(referenceVideoFile);
-    const targetFileName = `target${fileExt}`;
-
+export const CutVideo = (projectFolder: string, referenceVideoFile: string, referenceVideoFrom: number, referenceVideoDuration: number, targetFileName: string, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
     const focusedWindow = BrowserWindow.getFocusedWindow();
     focusedWindow?.setProgressBar(0);
 
-    console.log(`CutVideoAsSource`, referenceVideoFile, referenceVideoFrom, referenceVideoDuration, targetFileName);
+    console.log(`CutVideo`, referenceVideoFile, referenceVideoFrom, referenceVideoDuration, targetFileName);
 
     return new Promise<string>((resolve, reject) => {
         const ffmpeg = spawn('ffmpeg', [
@@ -115,6 +112,17 @@ export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, ref
             }
         });
     });
+}
+
+
+export const CutVideoAsSource = (projectFolder: string, {referenceVideoFile, referenceVideoFrom, referenceVideoDuration}: ProjectType, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
+    const fileExt = extname(referenceVideoFile);
+    const targetFileName = `target${fileExt}`;
+
+    console.assert(referenceVideoFrom != null);
+    console.assert(referenceVideoDuration != null);
+
+    return CutVideo(projectFolder, referenceVideoFile, referenceVideoFrom!, referenceVideoDuration!, targetFileName, callback);
 }
 
 

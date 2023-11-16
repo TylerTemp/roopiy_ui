@@ -8,6 +8,8 @@ export default {
             GetVideoSeconds: 'GetVideoSeconds',
             CutVideoAsSource: 'CutVideoAsSource',
             CutVideoAsSourceEvent: 'Project.CutVideoAsSource.Event',
+            CutVideo: 'CutVideo',
+            CutVideoEvent: 'Project.CutVideo.Event',
             ExtractVideo: 'ExtractVideo',
             ExtractVideoEvent: 'Project.ExtractVideo.Event',
             ExtractFacesInProject: 'ExtractFacesInProject',

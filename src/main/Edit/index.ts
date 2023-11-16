@@ -66,7 +66,7 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
     const allResults: FrameFaces[] = []
     while(true) {
         // callback(offset, total);
-        const startTime = new Date();
+        // const startTime = new Date();
         // console.log(`query all frames`, offset, limit);
         const frames = db.prepare(`
             SELECT
@@ -87,7 +87,7 @@ export const GetProjectFrameFaces = (projectFolder: string, callback: (cur: numb
             OFFSET ${offset}
         `).all() as FrameNestedQueryType[];
 
-        const usedTime = (new Date()).getTime() - startTime.getTime();
+        // const usedTime = (new Date()).getTime() - startTime.getTime();
 
         // console.log(`query all frames finished`, ConvertMsToTime(usedTime), frames.length);
         if(frames.length === 0) {

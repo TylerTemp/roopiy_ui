@@ -1,10 +1,9 @@
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent, webFrame } from 'electron';
 import ProjectType from '~s/Types/Project';
 import { FrameFaces } from '~s/Types/Edit';
 import Face from '~s/Types/Face';
-import { webFrame } from 'electron';
 import { type UpdateFrameFaceType } from './Edit/Types';
 import Channel from './IpcChannel';
 import { ParsedFaceLibType } from './Edit/Types';
@@ -59,6 +58,24 @@ const electronHandler = {
                     channelName,
                     projectFolder,
                     config) as Promise<string>)
+                    .then(r => {
+                        ipcRenderer.removeListener(channelName, callback);
+                        return r;
+                    });
+            },
+            CutVideo: (projectFolder: string, referenceVideoFile: string, referenceVideoFrom: number, referenceVideoDuration: number, targetFileName: string, callback: (cur: number, total: number, text: string) => void): Promise<string> => {
+                const channelName = `${Channel.Project.v.CutVideoEvent}.${projectFolder}`;
+                console.log(`setup channel ${channelName}`)
+                ipcRenderer.on(channelName, (_event: IpcRendererEvent, cur: number, total: number, text: string) => {
+                    callback(cur, total, text);
+                });
+                return (ipcRenderer.invoke(Channel.Project.k, Channel.Project.v.CutVideo,
+                        channelName,
+                        projectFolder,
+                        referenceVideoFile,
+                        referenceVideoFrom,
+                        referenceVideoDuration,
+                        targetFileName) as Promise<string>)
                     .then(r => {
                         ipcRenderer.removeListener(channelName, callback);
                         return r;

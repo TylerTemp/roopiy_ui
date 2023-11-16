@@ -88,9 +88,9 @@ export default ({label, error, value, onChange, durationOffset, projectFolder, r
         />
 
         {videoFile && <><video controls muted autoPlay loop className={Style.video} key={`${reload}_${loading}`}>
-            <source src={`project://${encodeURIComponent(projectFolder)}/${encodeURI(videoFile)}`} />
+            <source src={`project://${encodeURIComponent(projectFolder)}/${encodeURI(videoFile)}?q=${reload}`} />
         </video>
-            <button type="button" onClick={() => setReload(prev => -prev)}>Reload</button>
+            <button type="button" onClick={() => setReload(prev => (prev+1) % 10)}>Reload</button>
         </>}
     </Box>
 }

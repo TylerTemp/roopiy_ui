@@ -16,7 +16,10 @@ export function resolveHtmlPath(htmlFileName: string) {
 }
 
 export const GetProjectResource = (request: Request): Promise<Response> => {
-    const uri = request.url.slice('project://'.length);
+    let uri = request.url.slice('project://'.length);
+    if(uri.indexOf('?') !== -1) {
+        uri = uri.slice(0, uri.indexOf('?'));
+    }
 
     let filePath = join(ProjectsRoot, uri);
 
